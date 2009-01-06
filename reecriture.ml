@@ -8,8 +8,6 @@ type dp = term * term;;
 
 type can_be_removed = Strict | Large | No;;
 
-type def_symbs = int;; (* FIXME *)
-
 module VarMap = Map.Make (struct type t = var let compare = (-) end);;
 module VarSet = Set.Make (struct type t = var let compare = (-) end);;
 module IntMap = Map.Make (struct type t = int let compare = (-) end);;
@@ -167,8 +165,37 @@ type 'a cycle =
   |  Cycle of 'a list
   |  No_cycle of 'a list;;
 
+let print_list f l =
+  if l == [] then
+      print_string "Empty\n."
+  else
+    let rec print_list l =
+      match l with
+      | [] -> ()
+      | e::t -> f e; print_list t
+    in
+    print_list l
+;;
+
+let print_array f arr =
+  if Array.length arr == 0 then
+      print_string "Empty\n."
+  else
+    Array.iter (fun e -> print_string " "; f e) arr
+;;
+
 
 let print_graph fmt g =
+  print_string "** Number of nodes: ";
+  print_int g.nb_nodes;
+  print_newline ();
+  print_string "** Succ:";
+  print_array print_int g.nb_succ;
+  print_newline ();
+  print_string "** Pred:";
+  print_array print_int g.nb_pred;
+  print_newline ();
+
   for i = 0 to pred g.nb_nodes do
     for j = 0 to pred g.nb_nodes do
       if g.mat.(i).(j) > 0
@@ -386,6 +413,83 @@ let unification t1 t2 =
 
 (* ***************************** *)
 
+let print_symblist sl =
+  let rec p sl =
+    match sl with
+    | [] -> ()
+    | e::l ->
+        print_string e;
+        print_string " ";
+        p l
+  in
+  if sl == [] then
+    print_string "Empty\n"
+  else
+    p sl
+;;
+
+let rec print_term t =
+  match t with
+  | Var x ->
+      print_string "X";
+      print_int x
+  | Term (s, tl) ->
+      print_string s;
+      print_string (" (");
+      (
+       match tl with
+       | [] -> ()
+       | e::[] -> print_term e
+       | u::v::l ->
+           print_term u;
+           List.iter (fun e -> print_string ", "; print_term e) (v::l)
+      );
+      print_string (")");
+;;
+
+let print_dp dp =
+  let (left, right) = dp
+  in
+  print_term left;
+  print_string ", ";
+  print_term right
+;;
+
+let print_dps dpl =
+  let rec p dpl =
+    match dpl with
+    | [] -> ()
+    | e::l ->
+        print_dp e;
+        print_newline ();
+        p l
+  in
+  if dpl == [] then
+    print_string "empty\n"
+  else
+    p dpl
+;;
+
+let rec print_system sys =
+  match sys with
+  | [] -> print_string ""
+  | (t1, t2)::l ->
+      print_term t1; print_string " -> "; print_term t2;
+      print_newline ();
+      print_system l
+;;
+
+(* ***************************** *)
+
+let add_edge x y g =
+  print_string "foobar";
+  g.mat.(x).(y) <- succ g.mat.(x).(y);
+  g.nb_pred.(y) <- succ g.nb_pred.(y);
+  g.nb_succ.(x) <- succ g.nb_succ.(x)
+;;
+
+(* ***************************** *)
+
 (* Compute D set for DP *)
 let rec compute_dp_d sys =
   match sys with
@@ -419,13 +523,81 @@ let compute_dps sys =
   in compute (compute_dp_d sys) sys
 ;;
 
+(* CAP function *)
+let cap symbl term =
+  let rec cap n symbl term =
+    match term with
+    | Var _ -> term
+    | Term (s, tl) ->
+        if List.exists (fun e -> String.compare s e == 0) symbl then
+          Var (n * 10)
+        else
+          let rec comp_map n symbl tl =
+            match tl with
+            | [] -> []
+            | e::l -> (cap n symbl e)::(comp_map (n + 1) symbl l)
+          in
+          Term (s, comp_map n symbl tl)
+  in
+  cap 0 symbl term
+;;
 
-let compute_graph symbl dpl = {
-  nb_nodes = 0;
-  mat = [|[||]|];
-  nb_succ = [||];
-  nb_pred = [||];
-};;
+(* REN function *)
+let ren term =
+  let rec ren n term =
+    match term with
+    | Var _ -> Var (10 * n)
+    | Term (s, tl) ->
+        let rec comp_map n tl =
+          match tl with
+          | [] -> []
+          | e::l -> (ren n e)::(comp_map (n + 1) l)
+        in
+        Term (s, comp_map n tl)
+  in
+  ren 0 term
+;;
+
+(* Compute symb *)
+let rec compute_symb r =
+  let rec compute_term t =
+    match t with
+    | Var _ -> []
+    | Term (s, tl) ->
+        s::(List.flatten
+              (List.map compute_term tl))
+  in match r with
+  | [] -> []
+  | (t1, t2)::l ->
+      List.append (List.append (compute_term t1) (compute_term t2)) (compute_symb l)
+;;
+
+(* Compute G_init *)
+let compute_graph symbl dpl =
+  let nb_var = List.length dpl
+  in let g = {
+    nb_nodes = nb_var;
+    mat = Array.create_matrix nb_var nb_var 0;
+    nb_succ = Array.create nb_var 0;
+    nb_pred = Array.create nb_var 0
+  }
+  in let _ =
+    for i = 0 to List.length dpl - 1 do
+      for j = 0 to List.length dpl - 1 do
+        let (s1, t1) = List.nth dpl i
+        and (s2, t2) = List.nth dpl j
+        in
+        print_term (ren (cap symbl t1)); (* FIXME *)
+        print_newline ();
+        print_term s2;
+        print_newline ();
+        match unification (ren (cap symbl t1)) s2 with
+        | None -> ()
+        | Some _ -> add_edge i j g
+      done;
+    done
+  in g
+;;
 
 let extract_components g = [];;
 
