@@ -10,7 +10,7 @@ type rule = term * term;; (* l -> r est représentée par (l,r) *)
 type system = rule list;; (* les regles sont supposées regulières, avec membre à gauche non variable *)
 type dp = term * term;;
 
-type graph
+type graph;;
 
 val substitute : substitution -> term -> term (* fourni *)
 val matching : term -> term -> substitution option (* fourni *)
@@ -61,3 +61,6 @@ val find_projection : system -> graph -> def_symbs -> int -> ((symb * int) list 
 la terminaison est équivalente à celle de Ginit, et qui sont minimaux au sens
 où le théorème de l'enoncé ne permet plus de les réduire. *)
 val main : system -> graph list
+
+(* Debug *)
+val compute_dp_d : system -> symb list

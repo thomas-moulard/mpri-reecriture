@@ -386,7 +386,39 @@ let unification t1 t2 =
 
 (* ***************************** *)
 
-let compute_dps sys = [];;
+(* Compute D set for DP *)
+let rec compute_dp_d sys =
+  match sys with
+  | [] -> []
+  | (left, right)::l -> match left with
+    | Var _ -> compute_dp_d l
+    | Term (s, tl) -> s::(compute_dp_d l)
+;;
+
+(* Search if right's subterms allows to create DP *)
+let rec dp_search_subterms dp_d sys left right =
+  match right with
+  | Var _ -> []
+  | Term (s, tl) ->
+      let res = List.flatten
+          (List.map (fun e -> dp_search_subterms dp_d sys left e) tl)
+      in
+      if List.exists (fun e -> (String.compare e s) == 0) dp_d then
+        (left, right)::res
+      else
+        res
+;;
+
+(* Compute DPs *)
+let compute_dps sys =
+  let rec compute dp_d sys =
+    match sys with
+    | [] -> []
+    | (left, right)::l ->
+        List.append (dp_search_subterms dp_d sys left right) (compute dp_d l)
+  in compute (compute_dp_d sys) sys
+;;
+
 
 let compute_graph symbl dpl = {
   nb_nodes = 0;
