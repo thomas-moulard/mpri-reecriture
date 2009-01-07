@@ -23,7 +23,6 @@ val compute_dps : system -> dp list;;
 pour la liste de paires de dépendance dp_list, en supposant que const_symbs est la liste
 des symboles contructeurs,
 suivant la méthode du cours (cfr définition 7.14 p. 81 *)
-val compute_symb : system -> symb list;;
 val compute_graph : symb list -> dp list -> graph;;
 
 (* (extract_components G) retrourne la liste des composantes fortement connexes de son entrée G *)
@@ -61,6 +60,8 @@ la terminaison est équivalente à celle de Ginit, et qui sont minimaux au sens
 où le théorème de l'enoncé ne permet plus de les réduire. *)
 val main : system -> graph list
 
+val compute_dp_d : system -> symb list;;
+
 (* Debug *)
 val print_symblist : symb list -> unit;;
 val print_term  : term -> unit;;
@@ -68,5 +69,5 @@ val print_dp : dp -> unit;;
 val print_dps : dp list -> unit;;
 val print_system : system -> unit;;
 
-val compute_dp_d : system -> symb list;;
 val print_graph : Format.formatter -> graph -> unit;;
+val write_graph_dot : string -> graph -> unit;;

@@ -2,8 +2,9 @@
 
 open Reecriture;;
 
-let my_print_graph g =
-  print_graph Format.std_formatter g
+let my_print_graph g file =
+  print_graph Format.std_formatter g;
+  write_graph_dot file g
 ;;
 
 let test_graph_init () =
@@ -16,7 +17,7 @@ let test_graph_init () =
     (Term ("+", [Var 0; Term ("S", [Var 1])]),
      Term ("S", [Term("+", [Var 0; Var 1])]))
   ]
-  in my_print_graph (compute_graph (compute_symb sys) (compute_dps sys));
+  in my_print_graph (compute_graph (compute_dp_d sys) (compute_dps sys)) "graph_7-3.dot";
   print_newline ();
 
   print_string "* Graph init (system 7.11)\n";
@@ -43,7 +44,7 @@ let test_graph_init () =
      Term ("S", [Term ("/", [Term ("-", [Var 0; Var 1]); Var 1])])
     );
   ]
-  in my_print_graph (compute_graph (compute_symb sys) (compute_dps sys));
+  in my_print_graph (compute_graph (compute_dp_d sys) (compute_dps sys)) "graph_7-11.dot";
   print_newline ()
 ;;
 

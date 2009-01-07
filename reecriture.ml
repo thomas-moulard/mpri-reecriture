@@ -201,7 +201,21 @@ let print_graph fmt g =
       if g.mat.(i).(j) > 0
       then Format.fprintf fmt "@[%d -> %d@]@." i j
     done
-  done;;
+  done
+;;
+
+let write_graph_dot filename g =
+  let oc = open_out filename in
+  Printf.fprintf oc "digraph graph_dep {\n";
+  for i = 0 to pred g.nb_nodes do
+    for j = 0 to pred g.nb_nodes do
+      if g.mat.(i).(j) > 0
+      then Printf.fprintf oc "   %d -> %d;\n" i j
+    done;
+  done;
+  Printf.fprintf oc "}\n";
+  close_out oc;
+;;
 
 let remove_a_node g ix =
   for j=0 to pred g.nb_nodes do
@@ -482,7 +496,6 @@ let rec print_system sys =
 (* ***************************** *)
 
 let add_edge x y g =
-  print_string "foobar";
   g.mat.(x).(y) <- succ g.mat.(x).(y);
   g.nb_pred.(y) <- succ g.nb_pred.(y);
   g.nb_succ.(x) <- succ g.nb_succ.(x)
@@ -539,7 +552,7 @@ let cap symbl term =
           in
           Term (s, comp_map n symbl tl)
   in
-  cap 0 symbl term
+  cap 100 symbl term (* FIXME: *)
 ;;
 
 (* REN function *)
@@ -555,10 +568,11 @@ let ren term =
         in
         Term (s, comp_map n tl)
   in
-  ren 0 term
+  ren 200 term (* FIXME: *)
 ;;
 
-(* Compute symb *)
+(* Compute symb
+=> compute_d!!!
 let rec compute_symb r =
   let rec compute_term t =
     match t with
@@ -569,8 +583,12 @@ let rec compute_symb r =
   in match r with
   | [] -> []
   | (t1, t2)::l ->
+gauche uniquement ou gauche/droite?
       List.append (List.append (compute_term t1) (compute_term t2)) (compute_symb l)
+
+      List.append (compute_term t1) (compute_symb l)
 ;;
+*)
 
 (* Compute G_init *)
 let compute_graph symbl dpl =
@@ -587,10 +605,23 @@ let compute_graph symbl dpl =
         let (s1, t1) = List.nth dpl i
         and (s2, t2) = List.nth dpl j
         in
-        print_term (ren (cap symbl t1)); (* FIXME *)
+        (* FIXME:
         print_newline ();
-        print_term s2;
+        print_string "---";
         print_newline ();
+        print_string "symnl: "; print_list print_string symbl;
+        print_newline ();
+        print_string "t1: "; print_term t1;
+        print_newline ();
+        print_string "ren t1: "; print_term (ren t1);
+        print_newline ();
+        print_string "cap t1: "; print_term (cap symbl t1);
+        print_newline ();
+        print_string "cap ren t1: "; print_term (ren (cap symbl t1));
+        print_newline ();
+        print_string "s2: "; print_term s2;
+        print_newline ();
+         *)
         match unification (ren (cap symbl t1)) s2 with
         | None -> ()
         | Some _ -> add_edge i j g
