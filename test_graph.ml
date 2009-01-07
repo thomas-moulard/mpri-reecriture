@@ -2,49 +2,20 @@
 
 open Reecriture;;
 
-let my_print_graph g file =
+let print_write_graph sys file =
+  let g = (compute_graph (compute_dp_d sys) (compute_dps sys))
+  in
   print_graph Format.std_formatter g;
   write_graph_dot file g
 ;;
 
 let test_graph_init () =
   print_string "* Graph init (system 7.3)\n";
-  let zero = Term ("0", [])
-  in let sys = [
-    (* x + 0 -> x *)
-    (Term ("+", [Var 0; zero]), Var 0);
-    (* x+ S(y) -> S(x+y) *)
-    (Term ("+", [Var 0; Term ("S", [Var 1])]),
-     Term ("S", [Term("+", [Var 0; Var 1])]))
-  ]
-  in my_print_graph (compute_graph (compute_dp_d sys) (compute_dps sys)) "graph_7-3.dot";
+  print_write_graph Examples.system_7_3 "graph_7-3.dot";
   print_newline ();
 
   print_string "* Graph init (system 7.11)\n";
-  let zero = Term ("0", [])
-  in let sys = [
-    (* x - 0 -> x *)
-    (
-     Term ("-", [Var 0; zero]),
-     Var 0
-    );
-    (* 0 / S(y) -> 0 *)
-    (
-     Term ("/", [zero; Term ("S", [Var 1])]),
-     zero
-    );
-    (* S(x) - S(y) -> x - y *)
-    (
-     Term ("-", [Term ("S", [Var 0]); Term ("S", [Var 1])]),
-     Term ("-", [Var 0; Var 1])
-    );
-    (* S(x) / S(y) -> S((x - y) / S(y)) *)
-    (
-     Term ("/", [Term ("S", [Var 0]); Term ("S", [Var 1])]),
-     Term ("S", [Term ("/", [Term ("-", [Var 0; Var 1]); Var 1])])
-    );
-  ]
-  in my_print_graph (compute_graph (compute_dp_d sys) (compute_dps sys)) "graph_7-11.dot";
+  print_write_graph Examples.system_7_11 "graph_7-11.dot";
   print_newline ()
 ;;
 
