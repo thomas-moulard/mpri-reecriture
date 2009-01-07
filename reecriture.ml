@@ -495,10 +495,90 @@ let rec print_system sys =
 
 (* ***************************** *)
 
+let make_empty_graph nb_nodes =
+  {
+   nb_nodes = nb_nodes;
+   mat = Array.create_matrix nb_nodes nb_nodes 0;
+   nb_succ = Array.create nb_nodes 0;
+   nb_pred = Array.create nb_nodes 0
+ }
+;;
+
 let add_edge x y g =
   g.mat.(x).(y) <- succ g.mat.(x).(y);
   g.nb_pred.(y) <- succ g.nb_pred.(y);
   g.nb_succ.(x) <- succ g.nb_succ.(x)
+;;
+
+let graph_acc g node =
+  let rec graph_acc g node vnodes =
+    if g.nb_succ.(node) == 0 then
+      []
+    else
+      let res = ref [] in
+      begin
+        for i = 0 to pred g.nb_nodes do
+          if g.mat.(node).(i) > 0 && not (List.exists ((==) i) vnodes) then
+            res := List.append !res (graph_acc g i (node::vnodes));
+        done;
+        !res;
+      end
+  in
+  graph_acc g node []
+;;
+
+let graph_coacc g node =
+  let rec graph_acc g node vnodes =
+    if g.nb_pred.(node) == 0 then
+      []
+    else
+      let res = ref [] in
+      begin
+        for i = 0 to pred g.nb_nodes do
+          if g.mat.(i).(node) > 0 && not (List.exists ((==) i) vnodes) then
+            res := List.append !res (graph_acc g i (node::vnodes));
+        done;
+        !res;
+      end
+  in
+  graph_acc g node []
+;;
+
+(*
+  Colorize the graph depending on each connectivity.
+  Return an array with each nodes' color (0 = no component,
+  >0 = component's number).
+*)
+let graph_strong_connexity g =
+  let res = Array.create g.nb_nodes 0
+  and maxind = ref 1 in
+  begin
+    for i = 0 to pred g.nb_nodes do
+      let acc = graph_acc g i
+      in
+      for j = 0 to pred (List.length acc) do
+        let acc2 = graph_acc g j
+        and coacc2 = graph_coacc g j in
+        if List.exists ((==) i) acc2
+        && List.exists ((==) i) coacc2 then
+          let ind = max res.(i) res.(j) in
+          begin
+            if ind == 0 then
+              begin
+                res.(i) <- !maxind;
+                res.(j) <- !maxind;
+                maxind := !maxind + 1;
+              end
+            else
+              begin
+                res.(i) <- ind;
+                res.(j) <- ind;
+              end
+          end
+      done;
+    done;
+    res
+  end
 ;;
 
 (* ***************************** *)
@@ -630,7 +710,30 @@ let compute_graph symbl dpl =
   in g
 ;;
 
-let extract_components g = [];;
+let extract_components g =
+  let conn = graph_strong_connexity g in
+  let maxind = Array.fold_left (fun e m -> max e m) 0 conn
+  and res = ref []
+  in
+  begin
+    for i = 1 to maxind do
+      let g2 = make_empty_graph g.nb_nodes
+      in
+      begin
+        for x = 0 to pred g.nb_nodes do
+          for y = 0 to pred g.nb_nodes do
+            if g.mat.(x).(y) > 0
+                && conn.(x) == i
+                && conn.(x) == conn.(y) then
+              add_edge x y g2
+          done;
+        done
+      end;
+      res := g2::(!res)
+    done;
+    !res
+  end
+;;
 
 let compute_n_step_reds sys n t = [];;
 
