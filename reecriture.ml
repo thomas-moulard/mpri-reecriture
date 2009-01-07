@@ -210,7 +210,7 @@ let write_graph_dot filename g =
   for i = 0 to pred g.nb_nodes do
     for j = 0 to pred g.nb_nodes do
       if g.mat.(i).(j) > 0
-      then Printf.fprintf oc "   %d -> %d;\n" i j
+      then Printf.fprintf oc "   %d -> %d;\n" (i+1) (j+1)
     done;
   done;
   Printf.fprintf oc "}\n";
