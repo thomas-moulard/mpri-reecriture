@@ -167,7 +167,7 @@ type 'a cycle =
 
 let print_list f l =
   if l == [] then
-      print_string "Empty\n."
+      print_string "Empty."
   else
     let rec print_list l =
       match l with
@@ -510,15 +510,18 @@ let add_edge x y g =
   g.nb_succ.(x) <- succ g.nb_succ.(x)
 ;;
 
+let graph_nb_nodes g = g.nb_nodes;;
+
 let graph_acc g node =
   let rec graph_acc g node vnodes =
     if g.nb_succ.(node) == 0 then
-      []
+      [node]
     else
-      let res = ref [] in
+      let res = ref [node] in
       begin
         for i = 0 to pred g.nb_nodes do
-          if g.mat.(node).(i) > 0 && not (List.exists ((==) i) vnodes) then
+          if g.mat.(node).(i) > 0
+              && not (List.exists ((==) i) vnodes) then
             res := List.append !res (graph_acc g i (node::vnodes));
         done;
         !res;
@@ -528,20 +531,20 @@ let graph_acc g node =
 ;;
 
 let graph_coacc g node =
-  let rec graph_acc g node vnodes =
+  let rec graph_coacc g node vnodes =
     if g.nb_pred.(node) == 0 then
-      []
+      [node]
     else
-      let res = ref [] in
+      let res = ref [node] in
       begin
         for i = 0 to pred g.nb_nodes do
           if g.mat.(i).(node) > 0 && not (List.exists ((==) i) vnodes) then
-            res := List.append !res (graph_acc g i (node::vnodes));
+            res := List.append !res (graph_coacc g i (node::vnodes));
         done;
         !res;
       end
   in
-  graph_acc g node []
+  graph_coacc g node []
 ;;
 
 (*
@@ -554,9 +557,7 @@ let graph_strong_connexity g =
   and maxind = ref 1 in
   begin
     for i = 0 to pred g.nb_nodes do
-      let acc = graph_acc g i
-      in
-      for j = 0 to pred (List.length acc) do
+      for j = 0 to pred g.nb_nodes do
         let acc2 = graph_acc g j
         and coacc2 = graph_coacc g j in
         if List.exists ((==) i) acc2

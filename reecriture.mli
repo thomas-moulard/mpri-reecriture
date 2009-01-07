@@ -62,12 +62,18 @@ val main : system -> graph list
 
 val compute_dp_d : system -> symb list;;
 
+val graph_nb_nodes : graph -> int;;
+val graph_acc : graph -> int -> int list;;
+val graph_coacc : graph -> int -> int list;;
+
 (* Debug *)
 val print_symblist : symb list -> unit;;
 val print_term  : term -> unit;;
 val print_dp : dp -> unit;;
 val print_dps : dp list -> unit;;
 val print_system : system -> unit;;
+
+val print_list : ('a -> 'b) -> 'a list -> unit;;
 
 val print_graph : Format.formatter -> graph -> unit;;
 val write_graph_dot : string -> graph -> unit;;

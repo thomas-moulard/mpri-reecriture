@@ -8,19 +8,26 @@ let print_write_graph g file =
 ;;
 
 let print_write_graphs sys files =
-  let gs = extract_components (compute_graph (compute_dp_d sys)
-                                 (compute_dps sys))
-  in let rec print n gs =
-    match gs with
-    | [] -> ()
-    | e::l ->
-        begin
-          Format.fprintf Format.str_formatter files n;
-          print_write_graph e (Buffer.contents Format.stdbuf);
-          print (n+1) l;
-        end
-  in
-  print 0 gs
+  let g = compute_graph (compute_dp_d sys) (compute_dps sys) in
+  let gs = extract_components g in
+  begin
+    for i = 0 to pred (graph_nb_nodes g) do
+      print_string "Acc: "; print_list print_int (graph_acc g i);
+      print_newline ();
+      print_string "Co-acc: "; print_list print_int (graph_coacc g i);
+      print_newline ();
+    done;
+    let rec print n gs =
+      match gs with
+      | [] -> ()
+      | e::l ->
+          begin
+            print_write_graph e (Format.sprintf files n);
+            print (n+1) l;
+          end
+    in
+    print 0 gs
+  end
 ;;
 
 
