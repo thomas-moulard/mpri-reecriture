@@ -24,7 +24,7 @@ let print_write_graphs sys files =
           begin
             print_write_graph e (Format.sprintf files n);
             print (n+1) l;
-          end
+          end;
     in
     print 0 gs
   end
