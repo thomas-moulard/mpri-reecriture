@@ -736,7 +736,12 @@ let extract_components g =
   end
 ;;
 
-let compute_n_step_reds sys n t = [];;
+let rec compute_n_step_reds sys n t =
+  if n == 0 then
+    [t]
+  else
+    [t] (*FIXME:*)
+;;
 
 let project p t =
   match t with
@@ -751,17 +756,17 @@ let project p t =
  *)
 let rec is_subterm t1 t2 =
   match (t1, t2) with
-  | (Var x, Var y) -> if x == y then Strict else No
+  | (Var x, Var y) -> if x == y then Large else No
   | (Var _, Term _) -> No
   | (Term (s, tl), Var _) ->
       let doit prev e =
         if prev != No
             && is_subterm e t2 != No then
-          Large
+          Strict
         else
           No
       in
-      List.fold_left doit Large tl
+      List.fold_left doit Strict tl
 
   | (Term (s1, tl1), Term (s2, tl2)) ->
       if String.compare s1 s2 != 0 then
@@ -780,7 +785,7 @@ let rec is_subterm t1 t2 =
           else
             No
         in
-        List.fold_left2 doit Large tl1 tl2
+        List.fold_left2 doit Strict tl1 tl2
 ;;
 
 let removable r p (u, v) =
