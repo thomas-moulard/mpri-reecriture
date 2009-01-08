@@ -740,7 +740,23 @@ let rec compute_n_step_reds sys n t =
   if n == 0 then
     [t]
   else
-    [t] (*FIXME:*)
+    let rec try_unif sys =
+      match sys with
+      | [] -> []
+      | (left, right)::l ->
+          begin
+            let sigma = unification t left in
+            match sigma with
+            | None -> try_unif l
+            | Some sigma -> (substitute sigma right)::(try_unif l)
+          end
+    in
+    match t with
+    | Var _ -> try_unif sys
+    | Term (s, tl) ->
+        List.append
+          (try_unif sys)
+          (List.flatten (List.map (compute_n_step_reds sys (n-1)) tl))
 ;;
 
 let project p t =
