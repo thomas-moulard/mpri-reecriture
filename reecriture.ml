@@ -805,10 +805,34 @@ let rec is_subterm t1 t2 =
 ;;
 
 let removable r p (u, v) =
-  is_subterm  (project p u) (project p v)
+  is_subterm  (project p u) (project p v) (*FIXME implement ->R *)
 ;;
 
-let find_projection sys g dsymbs n = ([], (Var 0, Var 0));;
+let rec find_projection sys g symbl n =
+  let dps = compute_dps sys in
+  let g = compute_graph symbl dps in
+  let gcomps = extract_components g in
+
+  let rec find_p symbl =
+    match symbl with
+    | [] -> []
+    | e::l -> [] (* FIXME: *)
+  in let rec find_dp p dps =
+    match dps with
+    | [] -> raise Not_found
+    | e::l ->
+        if removable sys p e == Strict then
+          e
+        else
+          find_dp p l
+
+  in let proj = find_p symbl
+  and to_proj_fn proj symb =
+    let (s, n) = List.find (fun (s, n) -> String.compare symb s == 0) proj in n
+  in (proj, find_dp (to_proj_fn proj) dps)
+;;
+
 let main sys =
-  [];;
+  []
+;;
 

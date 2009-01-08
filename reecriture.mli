@@ -52,7 +52,6 @@ les symboles définis donnés par def_symbs, et une paire de dépendance (u0,v0) te
 
  si aucune telle projection n'existe, on peut lever une exception.
  *)
-
 val find_projection : system -> graph -> symb list -> int -> ((symb * int) list * dp)
 
 (* main R retourne une liste de sous-graphes Gi du graphe Ginit dont
