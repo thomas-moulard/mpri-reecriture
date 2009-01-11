@@ -8,6 +8,22 @@ let empty = [];;
 let vX = Var 0;;
 let vY = Var 1;;
 
+let vU = Var 10;;
+let vV = Var 11;;
+
+let succ x =
+  Term ("S", [x])
+;;
+
+let term_binop s a b =
+  Term (s, [a; b])
+;;
+let plus = term_binop "+";;
+let minus = term_binop "-";;
+let times = term_binop "x";;
+let div = term_binop "/";;
+
+
 let system_7_3 =
   [
    (* x + 0 -> x *)
@@ -15,6 +31,16 @@ let system_7_3 =
    (* x+ S(y) -> S(x+y) *)
    (Term ("+", [vX; Term ("S", [vY])]),
     Term ("S", [Term("+", [vX; vY])]))
+ ]
+;;
+
+let terms_7_3 =
+  [
+   plus vU zero;
+   plus vU (succ vV);
+   plus vU (succ (succ vU));
+   plus vU (succ (zero));
+   plus (succ (succ vU)) vV
  ]
 ;;
 

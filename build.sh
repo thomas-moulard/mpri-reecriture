@@ -4,6 +4,7 @@
 
 ocamlbuild                      \
     main.native                 \
+    test_compute_reds.native    \
     test_dps.native             \
     test_graph.native           \
     test_components.native

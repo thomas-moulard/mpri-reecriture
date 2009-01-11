@@ -30,6 +30,9 @@ val extract_components : graph -> graph list;;
 
 (* (compute_n_step_reds R n t) retourne la liste des réduits en n pas du terme t par le système R *)
 val compute_n_step_reds : system -> int -> term -> term list;;
+val apply_rule : term -> rule -> term option;;
+val apply_rules : term -> system -> term list;;
+val compute_step : system -> term -> term list;;
 
 (* (project P t) retourne t si t est une variable,
                           ti tel que ti est le (P f)-ieme element de l si t = (Term f l) *)
@@ -66,6 +69,7 @@ val graph_acc : graph -> int -> int list;;
 val graph_coacc : graph -> int -> int list;;
 
 (* Debug *)
+val print_option : ('a -> unit) -> 'a option -> unit;;
 val print_symblist : symb list -> unit;;
 val print_term  : term -> unit;;
 val print_dp : dp -> unit;;

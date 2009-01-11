@@ -167,7 +167,7 @@ type 'a cycle =
 
 let print_list f l =
   if l == [] then
-      print_string "Empty."
+      print_string "empty"
   else
     let rec print_list l =
       match l with
@@ -448,17 +448,33 @@ let rec print_term t =
       print_string "X";
       print_int x
   | Term (s, tl) ->
-      print_string s;
-      print_string (" (");
-      (
-       match tl with
-       | [] -> ()
-       | e::[] -> print_term e
-       | u::v::l ->
-           print_term u;
-           List.iter (fun e -> print_string ", "; print_term e) (v::l)
-      );
-      print_string (")");
+      if List.length tl == 2 then
+        match tl with
+        | a::b::[] ->
+            begin
+              print_term a;
+              print_string " ";
+              print_string s;
+              print_string " ";
+              print_term b;
+            end;
+        | _ -> assert false
+      else if List.length tl > 0 then
+        begin
+          print_string s;
+          print_string (" (");
+          begin
+            match tl with
+            | [] -> ()
+            | e::[] -> print_term e
+            | u::v::l ->
+                print_term u;
+                List.iter (fun e -> print_string ", "; print_term e) (v::l)
+          end;
+          print_string (")");
+        end
+      else
+        print_string s
 ;;
 
 let print_dp dp =
@@ -493,7 +509,41 @@ let rec print_system sys =
       print_system l
 ;;
 
+let print_option print opt =
+  match opt with
+  | None -> print_string "empty"
+  | Some x -> print x
+;;
+
+let print_map map =
+  VarMap.iter
+    (fun key e ->
+      print_string "X"; print_int key;
+      print_string " |-> ";
+      print_term e;
+      print_newline ()) map
+;;
+
 (* ***************************** *)
+
+let rec eq_term a b =
+  match (a, b) with
+  | (Var _, Term _) | (Term _, Var _) -> false
+  | (Var x, Var y) -> x == y
+  | (Term (s1, args1), Term (s2, args2)) ->
+      if String.compare s1 s2 != 0 then
+        false
+      else
+        List.exists2 eq_term args1 args2
+;;
+
+let uniq eq list =
+  List.fold_left (fun l elt -> if not (List.exists (eq elt) l) then elt::l else l) [] list
+;;
+let uniq_int = uniq (==);;
+let uniq_string = uniq (fun a b -> String.compare a b == 0);;
+let uniq_term = uniq eq_term;;
+
 
 let make_empty_graph nb_nodes =
   {
@@ -524,7 +574,7 @@ let graph_acc g node =
               && not (List.exists ((==) i) vnodes) then
             res := List.append !res (graph_acc g i (node::vnodes));
         done;
-        !res;
+        uniq_int !res;
       end
   in
   graph_acc g node []
@@ -541,7 +591,7 @@ let graph_coacc g node =
           if g.mat.(i).(node) > 0 && not (List.exists ((==) i) vnodes) then
             res := List.append !res (graph_coacc g i (node::vnodes));
         done;
-        !res;
+        uniq_int !res;
       end
   in
   graph_coacc g node []
@@ -590,7 +640,7 @@ let rec compute_dp_d sys =
   | [] -> []
   | (left, right)::l -> match left with
     | Var _ -> compute_dp_d l
-    | Term (s, tl) -> s::(compute_dp_d l)
+    | Term (s, tl) -> uniq_string (s::(compute_dp_d l))
 ;;
 
 (* Search if right's subterms allows to create DP *)
@@ -736,28 +786,78 @@ let extract_components g =
   end
 ;;
 
+let rec term_map var_f term_f term =
+  match term with
+  | Var x -> var_f x
+  | Term (s, tl) ->
+      term_f s
+        (List.map (term_map var_f term_f) tl)
+;;
+
+
+let rec swap_nth_child list n elt =
+  match list with
+  | [] ->  []
+  | e::l -> let res =
+      if n == 0 then elt else e
+  in res::swap_nth_child l (n-1) elt
+;;
+
+
+
+
+let apply_rule term (left, right) =
+  let sigmaopt = unification left term in
+  match sigmaopt with
+  | None -> None
+  | Some sigma ->
+(*
+  print_newline ();
+  print_map sigma;
+  print_term (substitute sigma right);
+  print_newline ();
+  print_string "\t\t";
+*)
+  Some (substitute sigma right)
+;;
+
+let rec apply_rules term rules =
+  match rules with
+  | [] -> [term]
+  | rule::l ->
+      match apply_rule term rule with
+      | None -> apply_rules term l
+      | Some res -> uniq_term (res::(apply_rules term l))
+;;
+
+let compute_step sys t =
+  match t with
+  | Var _ -> apply_rules t sys
+  | Term (s, args) ->
+      begin
+        let subterms = List.flatten
+            (List.map (fun e -> apply_rules e sys) args) in
+        let rebuild_term n e =
+          Term (s, swap_nth_child args n e) in
+        let (res, _) = List.fold_left
+            (fun (l, n) e -> ((rebuild_term n e)::l, n+1))
+            ([], 0)
+            subterms
+        in
+        uniq_term (apply_rules t sys)
+      end
+;;
+
 let rec compute_n_step_reds sys n t =
   if n == 0 then
     [t]
   else
-    let rec try_unif sys =
-      match sys with
-      | [] -> []
-      | (left, right)::l ->
-          begin
-            let sigma = unification t left in
-            match sigma with
-            | None -> try_unif l
-            | Some sigma -> (substitute sigma right)::(try_unif l)
-          end
-    in
-    match t with
-    | Var _ -> try_unif sys
-    | Term (s, tl) ->
-        List.append
-          (try_unif sys)
-          (List.flatten (List.map (compute_n_step_reds sys (n-1)) tl))
+    let one_step = compute_step sys t in
+    let res = List.flatten
+        (List.map (compute_n_step_reds sys (n-1)) one_step) in
+    uniq_term (List.append one_step res)
 ;;
+
 
 let project p t =
   match t with
@@ -805,7 +905,17 @@ let rec is_subterm t1 t2 =
 ;;
 
 let removable r p (u, v) =
-  is_subterm  (project p u) (project p v) (*FIXME implement ->R *)
+  let pu = project p u and pv = project p v in
+  let st = is_subterm pu pv in
+  st
+(* FIXME: add ->_R
+  if is_st != No then
+    is_st
+  else
+    List.find
+      (fun e -> is_subterm pu e != No)
+      (compute_n_step_reds r 1 (project p u))
+*)
 ;;
 
 let rec find_projection sys g symbl n =
@@ -833,6 +943,6 @@ let rec find_projection sys g symbl n =
 ;;
 
 let main sys =
-  []
+  [] (* FIXME: *)
 ;;
 
