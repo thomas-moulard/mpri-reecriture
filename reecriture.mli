@@ -44,6 +44,10 @@ type can_be_removed = Strict | Large | No
  - Strict si (P u) (|> U ->R)+ (P v)
  - Large si (P u) (|> U ->R)* (P v)
  - No dans les autres case *)
+
+val strict_subterms : term -> term list;;
+val subterms : term -> term list;;
+
 val removable : system -> (string -> int) -> dp -> can_be_removed
 
 

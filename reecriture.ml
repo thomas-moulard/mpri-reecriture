@@ -537,6 +537,11 @@ let rec eq_term a b =
         List.exists2 eq_term args1 args2
 ;;
 
+let eq_dp (u1, v1) (u2, v2) =
+  eq_term u1 u2 && eq_term v1 v2
+;;
+
+
 let uniq eq list =
   List.fold_left (fun l elt -> if not (List.exists (eq elt) l) then elt::l else l) [] list
 ;;
@@ -558,6 +563,10 @@ let add_edge x y g =
   g.mat.(x).(y) <- succ g.mat.(x).(y);
   g.nb_pred.(y) <- succ g.nb_pred.(y);
   g.nb_succ.(x) <- succ g.nb_succ.(x)
+;;
+
+let remove_state graph n =
+  graph
 ;;
 
 let graph_nb_nodes g = g.nb_nodes;;
@@ -904,18 +913,31 @@ let rec is_subterm t1 t2 =
         List.fold_left2 doit Strict tl1 tl2
 ;;
 
+let rec subterms term =
+  let subs = strict_subterms term in
+  uniq_term (term::subs)
+and strict_subterms term =
+  match term with
+  | Var _ -> []
+  | Term (s, args) ->
+      uniq_term (List.flatten (List.map subterms args))
+;;
+
 let removable r p (u, v) =
-  let pu = project p u and pv = project p v in
-  let st = is_subterm pu pv in
-  st
-(* FIXME: add ->_R
-  if is_st != No then
-    is_st
+  let pu = project p u
+  and pv = project p v in
+  let st = subterms pu
+  and st_strict = strict_subterms pu
+  and one_step = compute_n_step_reds r 1 pu in
+  let res = List.append st one_step
+  and res_strict = List.append st_strict one_step in
+
+  if List.exists (eq_term pv) res then
+    Strict
+  else if List.exists (eq_term pv) res_strict then
+    Large
   else
-    List.find
-      (fun e -> is_subterm pu e != No)
-      (compute_n_step_reds r 1 (project p u))
-*)
+    No
 ;;
 
 let rec find_projection sys g symbl n =
@@ -943,6 +965,24 @@ let rec find_projection sys g symbl n =
 ;;
 
 let main sys =
-  [] (* FIXME: *)
-;;
+  let dps = compute_dps sys in
+  let symbs = compute_dp_d dps in
+  let graph = compute_graph symbs dps in
 
+  let rec remove graph =
+    try
+      let (proj, dp) = find_projection sys graph symbs 1
+      and state = ref 0 and found = ref false in
+
+      while !found == false && !state < graph.nb_nodes do
+        if eq_dp (List.nth dps !state) dp then
+          found := true
+        else
+          state := !state + 1
+      done;
+      let new_graph = remove_state graph state in
+      new_graph::(remove new_graph);
+    with Not_found -> [graph]
+  in
+  remove graph
+;;
