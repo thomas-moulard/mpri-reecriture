@@ -940,29 +940,140 @@ let removable r p (u, v) =
     No
 ;;
 
-let rec find_projection sys g symbl n =
-  let dps = compute_dps sys in
-  let g = compute_graph symbl dps in
-  let gcomps = extract_components g in
 
-  let rec find_p symbl =
-    match symbl with
-    | [] -> []
-    | e::l -> [] (* FIXME: *)
-  in let rec find_dp p dps =
-    match dps with
-    | [] -> raise Not_found
-    | e::l ->
-        if removable sys p e == Strict then
-          e
+let rec compute_symbl_arity_term symbl term =
+  match term with
+  | Var _ -> -1
+  | Term (s, args) ->
+      begin
+        if String.compare s symbl == 0then
+          List.length args
         else
-          find_dp p l
-
-  in let proj = find_p symbl
-  and to_proj_fn proj symb =
-    let (s, n) = List.find (fun (s, n) -> String.compare symb s == 0) proj in n
-  in (proj, find_dp (to_proj_fn proj) dps)
+          List.fold_left (fun n elt -> max n (compute_symbl_arity_term symbl elt)) (-1) args
+      end
 ;;
+
+
+let rec compute_symbl_arity symbl rules =
+  match rules with
+  | [] -> -1
+  | (left, right)::l ->
+      let left_ar = compute_symbl_arity_term symbl left
+      and right_ar = compute_symbl_arity_term symbl left in
+      let res = max left_ar right_ar in
+      if res >= 0 then
+        res
+      else
+        compute_symbl_arity symbl l
+;;
+
+
+(* Generate all possible projections *)
+let rec gen_projs rules projs symbls =
+  let rec gen_seq arity n =
+    if n < arity then
+      []
+    else
+      n::(gen_seq arity (n+1))
+  in
+  let new_projs projs arity =
+    match projs with
+    | [] -> [gen_seq arity 0]
+    | e::l ->
+        List.map
+          (fun elt -> List.append e [elt])
+          (gen_seq arity 0)
+  in
+  match symbls with
+  | [] -> projs
+  | symbl::l ->
+      let arity = compute_symbl_arity symbl rules in
+      gen_projs rules (new_projs projs arity) l
+;;
+
+
+
+(* Check that every node in this component is removable *)
+let rec check_proj_comp rules graph p dp =
+  let i = ref 0
+  and res = ref true in
+  while !i < graph.nb_nodes
+      && !res == true do
+    if graph.nb_succ.(!i) > 0
+        && graph.nb_pred.(!i) > 0
+        && removable rules p dp == No then
+      res := false;
+    i := !i + 1
+  done;
+  !res
+;;
+
+(* Return  the component which belong to then n-th nodes. *)
+let rec find_component n comps =
+  match comps with
+  | [] -> raise Not_found
+  | graph::l ->
+      if graph.nb_pred.(n) > 0
+          && graph.nb_succ.(n) > 0 then
+        graph
+      else
+        find_component n l
+;;
+
+(* Search if the projection is valid with some dp *)
+let rec check_proj rules comps p dps n =
+  match dps with
+  | [] -> raise Not_found
+  | dp::l ->
+      if removable rules p dp == Strict
+        && check_proj_comp rules (find_component n comps) p dp then
+        dp
+      else
+        check_proj rules comps p l (n+1)
+;;
+
+let rec find_projection rules g symbls n =
+  let dps = compute_dps rules in
+  let g = compute_graph symbls dps in
+  let comps = extract_components g in
+  let projs = gen_projs rules [] symbls in
+  let get_symb_pos symb symbls =
+    let (res, _) = List.fold_right
+        (fun e (n, pos) ->
+          if String.compare symb e == 0 then
+            (pos, pos+1)
+          else
+            (n, pos+1))
+        symbls (0, 0)
+    in res
+  in
+  (* convert int list list into (symb -> int) list *)
+  let to_fun projs =
+    List.map (fun proj -> (fun symb -> List.nth proj (get_symb_pos symb symbls))) projs
+  in
+  (* convert (symb -> int) list into (symb * int) list *)
+  let rec to_list f symbls =
+    match symbls with
+    | [] -> []
+    | symbl::l ->
+        (symbl, f symbl)::(to_list f l)
+  in
+  let valid_projs = List.map
+      (fun elt ->
+        try
+          Some (elt, check_proj rules comps elt dps 0)
+        with Not_found -> None) (to_fun projs)
+  in
+  let res = List.find
+      (fun e -> match e with
+      | None -> false
+      | Some _ -> true) valid_projs
+  in
+  match res with
+  | None -> assert false
+  | Some (f, dp) -> (to_list f symbls, dp)
+;;
+
 
 let main sys =
   let dps = compute_dps sys in
