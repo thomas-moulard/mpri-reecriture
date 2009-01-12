@@ -1,0 +1,8 @@
+Author: Thomas Moulard
+
+./build.sh to compile the software
+
+./test-* to check for specific features.
+
+The whole project is in the Reecriture module.
+
