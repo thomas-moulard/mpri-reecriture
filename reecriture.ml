@@ -692,7 +692,7 @@ let cap symbl term =
           in
           Term (s, comp_map n symbl tl)
   in
-  cap 100 symbl term (* FIXME: *)
+  cap 20000 symbl term
 ;;
 
 (* REN function *)
@@ -708,27 +708,8 @@ let ren term =
         in
         Term (s, comp_map n tl)
   in
-  ren 200 term (* FIXME: *)
+  ren 10000 term
 ;;
-
-(* Compute symb
-=> compute_d!!!
-let rec compute_symb r =
-  let rec compute_term t =
-    match t with
-    | Var _ -> []
-    | Term (s, tl) ->
-        s::(List.flatten
-              (List.map compute_term tl))
-  in match r with
-  | [] -> []
-  | (t1, t2)::l ->
-gauche uniquement ou gauche/droite?
-      List.append (List.append (compute_term t1) (compute_term t2)) (compute_symb l)
-
-      List.append (compute_term t1) (compute_symb l)
-;;
-*)
 
 (* Compute G_init *)
 let compute_graph symbl dpl =
@@ -745,23 +726,6 @@ let compute_graph symbl dpl =
         let (s1, t1) = List.nth dpl i
         and (s2, t2) = List.nth dpl j
         in
-        (* FIXME:
-        print_newline ();
-        print_string "---";
-        print_newline ();
-        print_string "symnl: "; print_list print_string symbl;
-        print_newline ();
-        print_string "t1: "; print_term t1;
-        print_newline ();
-        print_string "ren t1: "; print_term (ren t1);
-        print_newline ();
-        print_string "cap t1: "; print_term (cap symbl t1);
-        print_newline ();
-        print_string "cap ren t1: "; print_term (ren (cap symbl t1));
-        print_newline ();
-        print_string "s2: "; print_term s2;
-        print_newline ();
-         *)
         match unification (ren (cap symbl t1)) s2 with
         | None -> ()
         | Some _ -> add_edge i j g
