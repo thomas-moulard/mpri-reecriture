@@ -838,45 +838,6 @@ let project p t =
   | Term (s, tl) -> List.nth tl (p s)
 ;;
 
-(*
-  Return Strict if t2 is strict subterm of t1,
-  large if t2 is a subterm of t2,
-  no otherwise.
- *)
-let rec is_subterm t1 t2 =
-  match (t1, t2) with
-  | (Var x, Var y) -> if x == y then Large else No
-  | (Var _, Term _) -> No
-  | (Term (s, tl), Var _) ->
-      let doit prev e =
-        if prev != No
-            && is_subterm e t2 != No then
-          Strict
-        else
-          No
-      in
-      List.fold_left doit Strict tl
-
-  | (Term (s1, tl1), Term (s2, tl2)) ->
-      if String.compare s1 s2 != 0 then
-        No
-      else
-        let rec doit prev e1 e2 =
-          if prev != No then
-            let res = is_subterm e1 e2 in
-            if res == No then
-              match e1 with
-              | Var _ -> No
-              | Term (s, tl_) ->
-                  List.fold_left2 doit Large tl_ tl2
-            else
-              res
-          else
-            No
-        in
-        List.fold_left2 doit Strict tl1 tl2
-;;
-
 let rec subterms term =
   let subs = strict_subterms term in
   uniq_term (term::subs)
