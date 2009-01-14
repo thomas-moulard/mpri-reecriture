@@ -817,7 +817,7 @@ let compute_step sys t =
             ([], 0)
             subterms
         in
-        uniq_term (apply_rules t sys)
+        uniq_term (List.append res (apply_rules t sys))
       end
 ;;
 
@@ -848,14 +848,14 @@ and strict_subterms term =
       uniq_term (List.flatten (List.map subterms args))
 ;;
 
-let removable r p (u, v) =
+let removable r p (u, v) n =
   let pu = project p u
   and pv = project p v in
   let st = subterms pu
   and st_strict = strict_subterms pu
-  and one_step = compute_n_step_reds r 1 pu in
-  let res = List.append st one_step
-  and res_strict = List.append st_strict one_step in
+  and n_step = compute_n_step_reds r n pu in
+  let res = List.append st n_step
+  and res_strict = List.append st_strict n_step in
 
   if List.exists (eq_term pv) res then
     Strict
@@ -919,14 +919,14 @@ let rec gen_projs rules projs symbls =
 
 
 (* Check that every node in this component is removable *)
-let rec check_proj_comp rules graph p dp =
+let rec check_proj_comp rules graph p dp nstep =
   let i = ref 0
   and res = ref true in
   while !i < graph.nb_nodes
       && !res == true do
     if graph.nb_succ.(!i) > 0
         && graph.nb_pred.(!i) > 0
-        && removable rules p dp == No then
+        && removable rules p dp nstep == No then
       res := false;
     i := !i + 1
   done;
@@ -946,15 +946,15 @@ let rec find_component n comps =
 ;;
 
 (* Search if the projection is valid with some dp *)
-let rec check_proj rules comps p dps n =
+let rec check_proj rules comps p dps n nstep =
   match dps with
   | [] -> raise Not_found
   | dp::l ->
-      if removable rules p dp == Strict
-        && check_proj_comp rules (find_component n comps) p dp then
+      if removable rules p dp nstep == Strict
+        && check_proj_comp rules (find_component n comps) p dp nstep then
         dp
       else
-        check_proj rules comps p l (n+1)
+        check_proj rules comps p l (n+1) nstep
 ;;
 
 let rec find_projection rules g symbls n =
@@ -986,7 +986,7 @@ let rec find_projection rules g symbls n =
   let valid_projs = List.map
       (fun elt ->
         try
-          Some (elt, check_proj rules comps elt dps 0)
+          Some (elt, check_proj rules comps elt dps 0 n)
         with Not_found -> None) (to_fun projs)
   in
   let res = List.find
@@ -1001,13 +1001,14 @@ let rec find_projection rules g symbls n =
 
 
 let main sys =
+  let nstep = 5 in
   let dps = compute_dps sys in
   let symbs = compute_dp_d dps in
   let graph = compute_graph symbs dps in
 
   let rec remove graph =
     try
-      let (proj, dp) = find_projection sys graph symbs 1
+      let (proj, dp) = find_projection sys graph symbs nstep
       and state = ref 0 and found = ref false in
 
       while !found == false && !state < graph.nb_nodes do

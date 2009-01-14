@@ -48,7 +48,7 @@ type can_be_removed = Strict | Large | No
 val strict_subterms : term -> term list;;
 val subterms : term -> term list;;
 
-val removable : system -> (string -> int) -> dp -> can_be_removed
+val removable : system -> (string -> int) -> dp -> int -> can_be_removed
 
 
 (* find_projection R G Def n retourne une projection P sous forme d'une liste d'association entre
