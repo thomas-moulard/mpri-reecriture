@@ -79,6 +79,8 @@ val graph_coacc : graph -> int -> int list;;
 val print_option : ('a -> unit) -> 'a option -> unit;;
 val print_symblist : symb list -> unit;;
 val print_term  : term -> unit;;
+val build_symblist : term -> string list;;
+val print_proj : string list -> (string -> int) -> unit;;
 val print_dp : dp -> unit;;
 val print_dps : dp list -> unit;;
 val print_system : system -> unit;;

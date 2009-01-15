@@ -8,4 +8,5 @@ ocamlbuild                      \
     test_dps.native             \
     test_graph.native           \
     test_main.native            \
+    test_proj.native            \
     test_components.native

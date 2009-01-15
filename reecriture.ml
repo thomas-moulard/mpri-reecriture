@@ -643,6 +643,25 @@ let graph_strong_connexity g =
   end
 ;;
 
+let rec build_symblist term =
+  match term with
+  | Var _ -> []
+  | Term (symbl, args) ->
+      let res =  List.fold_left (fun e l -> List.append e (build_symblist l)) [] args in
+      uniq_string (symbl::res)
+;;
+
+let rec print_proj symblist proj =
+  match symblist with
+  | [] -> ()
+  | e::l ->
+      print_string e;
+      print_string ": ";
+      print_int (proj e);
+      print_newline ();
+      print_proj l proj
+;;
+
 (* ***************************** *)
 
 (* Compute D set for DP *)
