@@ -11,7 +11,7 @@ open Examples;;
 let print_int_space e  = print_int e; print_string " ";;
 
 let print_write_graph sys file =
-  let g = (compute_graph (compute_dp_d sys) (compute_dps sys))
+  let g = (compute_graph (compute_symbols sys) (compute_dps sys))
   in
   print_graph Format.std_formatter g;
   print_newline ();

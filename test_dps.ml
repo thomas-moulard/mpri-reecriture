@@ -18,7 +18,7 @@ let test_system sys =
   print_system sys; print_newline ();
 
   print_string "D: ";
-  print_symblist (compute_dp_d sys); print_newline ();
+  print_symblist print_str_ws (compute_symbols sys); print_newline ();
 
   print_string "DPs:\n";
   print_dps (compute_dps sys);

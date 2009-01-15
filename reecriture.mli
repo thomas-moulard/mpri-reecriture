@@ -3,21 +3,109 @@ type symb = string;;
 
 module VarMap : Map.S with type key = var;;
 
-(* les types principaux *)
+(* Used types *)
 type term = Var of var | Term of symb * term list;;
-type substitution = term VarMap.t;;  (* ou  type substitution =  (var * term) list;;*)
-type rule = term * term;; (* l -> r est représentée par (l,r) *)
-type system = rule list;; (* les regles sont supposées regulières, avec membre à gauche non variable *)
+type substitution = term VarMap.t;;  (* where type substitution = (var * term) list;;*)
+type rule = term * term;; (* l -> r is represented by (l,r) *)
+type system = rule list;; (* regular rules: left member is constant *)
 type dp = term * term;;
 
 type graph;;
 
-val substitute : substitution -> term -> term (* fourni *)
-val matching : term -> term -> substitution option (* fourni *)
-val unification : term -> term -> substitution option (* fourni *)
+(* Provided functions *)
+val substitute : substitution -> term -> term
+val matching : term -> term -> substitution option
+val unification : term -> term -> substitution option
 
-(* computes_dps calcule toutes les paires de dépendance du système donné en entrée *)
+
+(****************************************************************************
+ * Debug/printing functions.                                                *
+ ****************************************************************************)
+val print_with : string -> ('a -> unit) -> 'a -> unit;;
+val print_int_ws : int -> unit;;
+val print_str_ws : string -> unit;;
+
+val print_array : ('a -> unit) -> 'a array -> unit;;
+val print_list : ('a -> 'b) -> 'a list -> unit;;
+val print_option : ('a -> unit) -> 'a option -> unit;;
+
+val print_symblist : (symb -> unit) -> symb list -> unit;;
+val print_term  : term -> unit;;
+val print_map : (VarMap.key -> unit) -> term VarMap.t -> unit;;
+val print_dp : dp -> unit;;
+val print_dps : dp list -> unit;;
+
+val print_rule : rule -> unit;;
+val print_system : system -> unit;;
+
+val print_proj : (string -> int) -> symb list -> unit;;
+
+val print_graph : Format.formatter -> graph -> unit;;
+
+
+(****************************************************************************
+ * Generic functions.                                                       *
+ ****************************************************************************)
+
+val uniq : ('a -> 'a -> bool) -> 'a list -> 'a list;;
+val uniq_int : int list -> int list;;
+val uniq_string : string list -> string list;;
+
+val eq_string : string -> string -> bool;;
+
+
+(****************************************************************************
+ * Term related functions.                                                  *
+ ****************************************************************************)
+val eq_term : term -> term -> bool;;
+val eq_dp : dp -> dp -> bool;;
+val uniq_term : term list -> term list;;
+
+(* Compute of a term's symbols. *)
+val build_symblist : term -> symb list;;
+
+(* Compute the D set from a given system. *)
+val compute_symbols : system -> symb list;;
+
+(* Compute the max variable id of a term. *)
+val get_var_max : term -> int;;
+
+(* Build a new fresh variable from the current max variable id
+   of a term. *)
+val mk_fresh_var : int ref -> term;;
+
+(* Cap function replaces by variables all subterms in D (see 7.14) *)
+val cap : symb list -> term -> term;;
+
+(* Ren function replaces variables by fresh ones. *)
+val ren : term -> term;;
+
+(****************************************************************************
+ * Graph related functions.                                                 *
+ ****************************************************************************)
+val graph_nb_nodes : graph -> int;;
+val make_empty_graph : int -> graph;;
+val add_edge : int -> int -> graph -> unit;;
+val graph_acc : graph -> int -> int list;;
+val graph_coacc : graph -> int -> int list;;
+
+(* Colorize the graph depending on each connectivity.
+  Return an array with each nodes' color (0 = no component,
+  >0 = component's number). *)
+val graph_strong_connectivity : graph -> int array;;
+
+val write_graph_dot : string -> graph -> unit;;
+
+(****************************************************************************
+ * Dependencies pairs.                                                      *
+ ****************************************************************************)
+
+(* Compute a system's dependencies pair. *)
 val compute_dps : system -> dp list;;
+
+
+
+
 
 (* (computes_graph const_symbs dp_list) calcule une sur-approximation G_init du graphe de dépendance
 pour la liste de paires de dépendance dp_list, en supposant que const_symbs est la liste
@@ -66,26 +154,6 @@ la terminaison est équivalente à celle de Ginit, et qui sont minimaux au sens
 où le théorème de l'enoncé ne permet plus de les réduire. *)
 val main : system -> graph list
 
-val compute_dp_d : system -> symb list;;
 
-(* graph *)
-val make_empty_graph : int -> graph;;
-val add_edge : int -> int -> graph -> unit;;
-val graph_nb_nodes : graph -> int;;
-val graph_acc : graph -> int -> int list;;
-val graph_coacc : graph -> int -> int list;;
 
 (* Debug *)
-val print_option : ('a -> unit) -> 'a option -> unit;;
-val print_symblist : symb list -> unit;;
-val print_term  : term -> unit;;
-val build_symblist : term -> string list;;
-val print_proj : string list -> (string -> int) -> unit;;
-val print_dp : dp -> unit;;
-val print_dps : dp list -> unit;;
-val print_system : system -> unit;;
-
-val print_list : ('a -> 'b) -> 'a list -> unit;;
-
-val print_graph : Format.formatter -> graph -> unit;;
-val write_graph_dot : string -> graph -> unit;;

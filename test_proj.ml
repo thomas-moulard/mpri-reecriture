@@ -24,7 +24,7 @@ let test_project term =
   print_term term;
   print_newline ();
   print_string "\tProjection:\n";
-  print_proj (build_symblist term) proj;
+  print_proj proj (build_symblist term);
   print_newline ();
   print_string "\tProjected term: ";
   print_term (project proj term);

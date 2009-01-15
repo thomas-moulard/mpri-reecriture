@@ -165,59 +165,6 @@ type 'a cycle =
   |  Cycle of 'a list
   |  No_cycle of 'a list;;
 
-let print_list f l =
-  if l == [] then
-      print_string "empty"
-  else
-    let rec print_list l =
-      match l with
-      | [] -> ()
-      | e::t -> f e; print_list t
-    in
-    print_list l
-;;
-
-let print_array f arr =
-  if Array.length arr == 0 then
-      print_string "Empty\n."
-  else
-    Array.iter (fun e -> print_string " "; f e) arr
-;;
-
-
-let print_graph fmt g =
-  print_string "\t- Number of nodes: ";
-  print_int g.nb_nodes;
-  print_newline ();
-  print_string "\t- Succ:";
-  print_array print_int g.nb_succ;
-  print_newline ();
-  print_string "\t- Pred:";
-  print_array print_int g.nb_pred;
-  print_newline ();
-
-  (*
-  for i = 0 to pred g.nb_nodes do
-    for j = 0 to pred g.nb_nodes do
-      if g.mat.(i).(j) > 0
-      then Format.fprintf fmt "@[%d -> %d@]@." i j
-    done
-  done
-   *)
-;;
-
-let write_graph_dot filename g =
-  let oc = open_out filename in
-  Printf.fprintf oc "digraph graph_dep {\n";
-  for i = 0 to pred g.nb_nodes do
-    for j = 0 to pred g.nb_nodes do
-      if g.mat.(i).(j) > 0
-      then Printf.fprintf oc "   %d -> %d;\n" (i+1) (j+1)
-    done;
-  done;
-  Printf.fprintf oc "}\n";
-  close_out oc;
-;;
 
 let remove_a_node g ix =
   for j=0 to pred g.nb_nodes do
@@ -427,88 +374,29 @@ let unification t1 t2 =
 	Some (oc substitute vsigma sigma)
     with Exit | Not_found -> None;;
 
-(* ***************************** *)
+(****************************************************************************
+ * Debug, test, printing functions.                                         *
+ ****************************************************************************)
 
-let print_symblist sl =
-  let rec p sl =
-    match sl with
-    | [] -> ()
-    | e::l ->
-        print_string e;
-        print_string " ";
-        p l
-  in
-  if sl == [] then
-    print_string "Empty\n"
+let print_with str f e = f e; print_string str;;
+let print_int_ws = print_with " " print_int;;
+let print_str_ws = print_with " " print_string;;
+
+let print_array printfct array =
+  if Array.length array == 0 then
+      print_string "empty"
   else
-    p sl
+    Array.iter printfct array
 ;;
 
-let rec print_term t =
-  match t with
-  | Var x ->
-      print_string "X";
-      print_int x
-  | Term (s, tl) ->
-      if List.length tl == 2 then
-        match tl with
-        | a::b::[] ->
-            begin
-              print_term a;
-              print_string " ";
-              print_string s;
-              print_string " ";
-              print_term b;
-            end;
-        | _ -> assert false
-      else if List.length tl > 0 then
-        begin
-          print_string s;
-          print_string (" (");
-          begin
-            match tl with
-            | [] -> ()
-            | e::[] -> print_term e
-            | u::v::l ->
-                print_term u;
-                List.iter (fun e -> print_string ", "; print_term e) (v::l)
-          end;
-          print_string (")");
-        end
-      else
-        print_string s
-;;
-
-let print_dp dp =
-  let (left, right) = dp
-  in
-  print_term left;
-  print_string ", ";
-  print_term right
-;;
-
-let print_dps dpl =
-  let rec p dpl =
-    match dpl with
+let rec print_list printfct list =
+  let rec print = function
     | [] -> ()
-    | e::l ->
-        print_dp e;
-        print_newline ();
-        p l
-  in
-  if dpl == [] then
-    print_string "empty\n"
+    | e::t -> printfct e; print_list printfct t in
+  if list == [] then
+    print_string "empty"
   else
-    p dpl
-;;
-
-let rec print_system sys =
-  match sys with
-  | [] -> print_string ""
-  | (t1, t2)::l ->
-      print_term t1; print_string " -> "; print_term t2;
-      print_newline ();
-      print_system l
+    print list
 ;;
 
 let print_option print opt =
@@ -517,61 +405,173 @@ let print_option print opt =
   | Some x -> print x
 ;;
 
-let print_map map =
-  VarMap.iter
-    (fun key e ->
-      print_string "X"; print_int key;
-      print_string " |-> ";
-      print_term e;
-      print_newline ()) map
+let print_symblist printfct symbls =
+  let rec print = function
+    | [] -> ()
+    | e::l -> printfct e; print l in
+  if symbls == [] then
+    print_string "empty"
+  else
+    print symbls
 ;;
 
-(* ***************************** *)
-
-let rec eq_term a b =
-  match (a, b) with
-  | (Var _, Term _) | (Term _, Var _) -> false
-  | (Var x, Var y) -> x == y
-  | (Term (s1, args1), Term (s2, args2)) ->
-      if String.compare s1 s2 != 0 then
-        false
-      else
-        List.exists2 eq_term args1 args2
+let rec print_term =
+    let print_var x =
+      print_string "X"; print_int x
+    and print_binop symbl = function
+    | a::b::[] ->
+        print_term a;
+        print_string " ";
+        print_string symbl;
+        print_string " ";
+        print_term b;
+    | _ -> assert false
+  and print_args = function
+    | [] -> ()
+    | e::[] -> print_term e
+    | u::v::l ->
+        print_term u;
+        List.iter (print_with ", " print_term) (v::l)
+  in let print_symb symbl args =
+    if List.length args == 0 then
+      print_string symbl
+    else if List.length args == 2 then
+      print_binop symbl args
+    else
+      (print_string symbl; print_string (" ("); print_args args; print_string (")"))
+  in function
+  | Var x -> print_var x
+  | Term (symbl, args) ->
+      print_symb symbl args
 ;;
 
-let eq_dp (u1, v1) (u2, v2) =
-  eq_term u1 u2 && eq_term v1 v2
+let print_map print map =
+  let printmap key e =
+    print_string "X"; print key;
+    print_string " |-> "; print_term e; print_newline () in
+  VarMap.iter printmap map
 ;;
 
+let print_dp (left, right) = print_term left; print_string ", "; print_term right;;
+let print_dps = print_list (print_with "\n" print_dp);;
+
+let print_rule (left, right) = print_term left; print_string " -> "; print_term right;;
+
+let rec print_system = function
+  | [] -> print_string "empty"
+  | rule::l -> print_with "\n" print_rule rule; print_system l
+;;
+
+let rec print_proj proj = function
+  | [] -> ()
+  | e::l -> Format.printf "%s: %d\n" e (proj e)
+;;
+
+let print_graph fmt g =
+  print_string "- Number of nodes: "; print_int g.nb_nodes; print_newline ();
+  print_string "- Succ:"; print_array print_int g.nb_succ; print_newline ();
+  print_string "- Pred:"; print_array print_int g.nb_pred; print_newline ();
+;;
+
+(****************************************************************************
+ * Generic functions.                                                       *
+ ****************************************************************************)
+
+let eq_string a b = String.compare a b == 0;;
 
 let uniq eq list =
-  List.fold_left (fun l elt -> if not (List.exists (eq elt) l) then elt::l else l) [] list
+  let rec drop_double l elt =
+    if not (List.exists (eq elt) l) then elt::l else l in
+  List.fold_left drop_double [] list
 ;;
+
 let uniq_int = uniq (==);;
-let uniq_string = uniq (fun a b -> String.compare a b == 0);;
+let uniq_string = uniq eq_string;;
+
+(****************************************************************************
+ * Term related functions.                                                  *
+ ****************************************************************************)
+
+let rec eq_term a b = match (a, b) with
+| (Var _, Term _) | (Term _, Var _) -> false
+| (Var x, Var y) -> x == y
+| (Term (s1, args1), Term (s2, args2)) ->
+    if eq_string s1 s2 then
+      List.exists2 eq_term args1 args2
+    else
+      false
+;;
+
+let eq_dp (u1, v1) (u2, v2) = eq_term u1 u2 && eq_term v1 v2;;
 let uniq_term = uniq eq_term;;
 
+let build_symblist term =
+  let rec build = function
+    | Var _ -> []
+    | Term (symbl, args) ->
+        let res =  List.fold_left (fun e l -> List.append e (build l)) [] args in
+        symbl::res
+  in uniq_string (build term)
+;;
 
-let make_empty_graph nb_nodes =
-  {
+
+let compute_symbols rules =
+  let rec build = function
+    | [] -> []
+    | (Var _, _)::l -> build l
+    | (Term (symbl, _), _)::l -> symbl::(build l)
+  in uniq_string (build rules)
+;;
+
+let get_var_max term =
+  let rec compute n = function
+    | Var x ->max n x
+    | Term (_, args) ->
+        max n (List.fold_left (fun n e -> max n (compute n e)) n args)
+  in compute 0 term
+;;
+
+let mk_fresh_var n = n := !n + 1; Var !n;;
+
+let cap symbls term =
+  let max_vid = ref (get_var_max term)
+  and must_refresh symbl = List.exists (eq_string symbl) symbls in
+  let rec build = function
+    | Var x -> Var x
+    | Term (symbl, args) ->
+        if must_refresh symbl then
+          mk_fresh_var max_vid
+        else
+          Term (symbl, List.map build args) in
+  build term
+;;
+
+let ren term =
+  let max_vid = ref (get_var_max term) in
+  let rec build = function
+    | Var _ -> mk_fresh_var max_vid
+    | Term (symbl, args) ->
+        Term (symbl, List.map build args) in
+  build term
+;;
+
+(****************************************************************************
+ * Graph related functions.                                                 *
+ ****************************************************************************)
+let graph_nb_nodes g = g.nb_nodes;;
+
+let make_empty_graph nb_nodes = {
    nb_nodes = nb_nodes;
    mat = Array.create_matrix nb_nodes nb_nodes 0;
    nb_succ = Array.create nb_nodes 0;
    nb_pred = Array.create nb_nodes 0
- }
-;;
+ };;
 
 let add_edge x y g =
   g.mat.(x).(y) <- succ g.mat.(x).(y);
   g.nb_pred.(y) <- succ g.nb_pred.(y);
   g.nb_succ.(x) <- succ g.nb_succ.(x)
 ;;
-
-let remove_state graph n =
-  graph
-;;
-
-let graph_nb_nodes g = g.nb_nodes;;
 
 let graph_acc g node =
   let rec graph_acc g node vnodes =
@@ -608,129 +608,67 @@ let graph_coacc g node =
   graph_coacc g node []
 ;;
 
-(*
-  Colorize the graph depending on each connectivity.
-  Return an array with each nodes' color (0 = no component,
-  >0 = component's number).
-*)
-let graph_strong_connexity g =
+let graph_strong_connectivity g =
   let res = Array.create g.nb_nodes 0
   and maxind = ref 1 in
-  begin
-    for i = 0 to pred g.nb_nodes do
-      for j = 0 to pred g.nb_nodes do
-        let acc2 = graph_acc g j
-        and coacc2 = graph_coacc g j in
-        if List.exists ((==) i) acc2
-        && List.exists ((==) i) coacc2 then
-          let ind = max res.(i) res.(j) in
-          begin
-            if ind == 0 then
-              begin
-                res.(i) <- !maxind;
-                res.(j) <- !maxind;
-                maxind := !maxind + 1;
-              end
-            else
-              begin
-                res.(i) <- ind;
-                res.(j) <- ind;
-              end
-          end
-      done;
+  for i = 0 to pred g.nb_nodes do
+    for j = 0 to pred g.nb_nodes do
+      let acc2 = graph_acc g j
+      and coacc2 = graph_coacc g j in
+      if List.exists ((==) i) acc2
+          && List.exists ((==) i) coacc2 then
+        let ind = max res.(i) res.(j) in
+        if ind == 0 then
+          (res.(i) <- !maxind; res.(j) <- !maxind; maxind := !maxind + 1)
+        else
+          (res.(i) <- ind; res.(j) <- ind)
     done;
-    res
-  end
+  done;
+  res
 ;;
 
-let rec build_symblist term =
-  match term with
-  | Var _ -> []
-  | Term (symbl, args) ->
-      let res =  List.fold_left (fun e l -> List.append e (build_symblist l)) [] args in
-      uniq_string (symbl::res)
+
+let write_graph_dot filename g =
+  let oc = open_out filename in
+  Printf.fprintf oc "digraph graph_dep {\n";
+  for i = 0 to pred g.nb_nodes do
+    for j = 0 to pred g.nb_nodes do
+      if g.mat.(i).(j) > 0
+      then Printf.fprintf oc "   %d -> %d;\n" (i+1) (j+1)
+    done;
+  done;
+  Printf.fprintf oc "}\n";
+  close_out oc;
 ;;
 
-let rec print_proj symblist proj =
-  match symblist with
-  | [] -> ()
-  | e::l ->
-      print_string e;
-      print_string ": ";
-      print_int (proj e);
-      print_newline ();
-      print_proj l proj
-;;
+(****************************************************************************
+ * Dependencies pairs.                                                      *
+ ****************************************************************************)
 
-(* ***************************** *)
-
-(* Compute D set for DP *)
-let rec compute_dp_d sys =
-  match sys with
-  | [] -> []
-  | (left, right)::l -> match left with
-    | Var _ -> compute_dp_d l
-    | Term (s, tl) -> uniq_string (s::(compute_dp_d l))
-;;
 
 (* Search if right's subterms allows to create DP *)
-let rec dp_search_subterms dp_d sys left right =
-  match right with
+let rec dp_search_subterms symbls sys left = function
   | Var _ -> []
-  | Term (s, tl) ->
+  | Term (symbl, args) ->
       let res = List.flatten
-          (List.map (fun e -> dp_search_subterms dp_d sys left e) tl)
-      in
-      if List.exists (fun e -> (String.compare e s) == 0) dp_d then
-        (left, right)::res
+          (List.map (dp_search_subterms symbls sys left) args) in
+      if List.exists (eq_string symbl) symbls then
+        (left, Term (symbl, args))::res
       else
         res
 ;;
 
-(* Compute DPs *)
 let compute_dps sys =
-  let rec compute dp_d sys =
-    match sys with
-    | [] -> []
-    | (left, right)::l ->
-        List.append (dp_search_subterms dp_d sys left right) (compute dp_d l)
-  in compute (compute_dp_d sys) sys
+  let symbls = compute_symbols sys in
+  let rec build = function
+  | [] -> []
+  | (left, right)::l ->
+      List.append (dp_search_subterms symbls sys left right) (build l)
+  in build sys
 ;;
 
-(* CAP function *)
-let cap symbl term =
-  let rec cap n symbl term =
-    match term with
-    | Var _ -> term
-    | Term (s, tl) ->
-        if List.exists (fun e -> String.compare s e == 0) symbl then
-          Var (n * 10)
-        else
-          let rec comp_map n symbl tl =
-            match tl with
-            | [] -> []
-            | e::l -> (cap n symbl e)::(comp_map (n + 1) symbl l)
-          in
-          Term (s, comp_map n symbl tl)
-  in
-  cap 20000 symbl term
-;;
 
-(* REN function *)
-let ren term =
-  let rec ren n term =
-    match term with
-    | Var _ -> Var (10 * n)
-    | Term (s, tl) ->
-        let rec comp_map n tl =
-          match tl with
-          | [] -> []
-          | e::l -> (ren n e)::(comp_map (n + 1) l)
-        in
-        Term (s, comp_map n tl)
-  in
-  ren 10000 term
-;;
+(* TODO: *)
 
 (* Compute G_init *)
 let compute_graph symbl dpl =
@@ -756,7 +694,7 @@ let compute_graph symbl dpl =
 ;;
 
 let extract_components g =
-  let conn = graph_strong_connexity g in
+  let conn = graph_strong_connectivity g in
   let maxind = Array.fold_left (fun e m -> max e m) 0 conn
   and res = ref []
   in
@@ -1024,7 +962,7 @@ let rec find_projection rules g symbls n =
 let main sys =
   let nstep = 5 in
   let dps = compute_dps sys in
-  let symbs = compute_dp_d dps in
+  let symbs = compute_symbols dps in
   let graph = compute_graph symbs dps in
 
   let rec remove graph =
@@ -1038,8 +976,8 @@ let main sys =
         else
           state := !state + 1
       done;
-      let new_graph = remove_state graph state in
-      new_graph::(remove new_graph);
+      remove_a_node graph !state;
+      graph::(remove graph);
     with Not_found -> [graph]
   in
   remove graph

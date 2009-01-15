@@ -35,7 +35,7 @@ let print_write_extr_comps g files =
 ;;
 
 let print_write_extr_comps_from_sys sys files =
-  let g = compute_graph (compute_dp_d sys) (compute_dps sys) in
+  let g = compute_graph (compute_symbols sys) (compute_dps sys) in
   print_write_extr_comps g files
 ;;
 
