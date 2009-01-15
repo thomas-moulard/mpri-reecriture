@@ -102,3 +102,30 @@ let system_7_19 =
    Term ("intlist", [Term ("int", [vX; vY])])
  ]
 ;;
+
+
+(* Hand-made graphs for graph-related test. *)
+
+(* System 7.11 *)
+let graph_7_11 =
+  let g = make_empty_graph 3 in
+  add_edge 0 0 g;
+  add_edge 1 1 g;
+  add_edge 2 0 g;
+  add_edge 1 2 g;
+  g
+;;
+
+(* System 7.19 *)
+let graph_7_19 =
+  let g = make_empty_graph 4 in
+  add_edge 0 0 g;
+  add_edge 3 3 g;
+
+  add_edge 2 0 g;
+  add_edge 3 2 g;
+  add_edge 1 2 g;
+  add_edge 1 3 g;
+  add_edge 3 1 g;
+  g
+;;

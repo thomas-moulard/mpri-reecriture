@@ -186,22 +186,24 @@ let print_array f arr =
 
 
 let print_graph fmt g =
-  print_string "** Number of nodes: ";
+  print_string "\t- Number of nodes: ";
   print_int g.nb_nodes;
   print_newline ();
-  print_string "** Succ:";
+  print_string "\t- Succ:";
   print_array print_int g.nb_succ;
   print_newline ();
-  print_string "** Pred:";
+  print_string "\t- Pred:";
   print_array print_int g.nb_pred;
   print_newline ();
 
+  (*
   for i = 0 to pred g.nb_nodes do
     for j = 0 to pred g.nb_nodes do
       if g.mat.(i).(j) > 0
       then Format.fprintf fmt "@[%d -> %d@]@." i j
     done
   done
+   *)
 ;;
 
 let write_graph_dot filename g =

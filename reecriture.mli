@@ -68,6 +68,9 @@ val main : system -> graph list
 
 val compute_dp_d : system -> symb list;;
 
+(* graph *)
+val make_empty_graph : int -> graph;;
+val add_edge : int -> int -> graph -> unit;;
 val graph_nb_nodes : graph -> int;;
 val graph_acc : graph -> int -> int list;;
 val graph_coacc : graph -> int -> int list;;
