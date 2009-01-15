@@ -10,19 +10,13 @@ let print_write_graph g file =
 
 let print_write_graphs sys files =
   try
-    let gs = main sys in
-    begin
-      let rec print n gs =
-        match gs with
-        | [] -> ()
-        | e::l ->
-            begin
-              print_write_graph e (Format.sprintf files n);
-              print (n+1) l;
-            end;
-      in
-      print 0 gs
-    end
+    let gs = main sys 5 in
+    let rec print n = function
+      | [] -> ()
+      | e::l ->
+          print_write_graph e (Format.sprintf files n);
+          print (n+1) l in
+    print 0 gs
   with e -> print_string (to_string e)
 ;;
 

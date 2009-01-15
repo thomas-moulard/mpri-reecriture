@@ -1,3 +1,6 @@
+(****************************************************************************
+ * Types.                                                                   *
+ ****************************************************************************)
 type var = int;;
 type symb = string;;
 
@@ -18,6 +21,12 @@ type 'a pairs =
     Pair of ('a * 'a)
   | LPairs of ('a list * ('a list));;
 
+type projection = string -> int;;
+
+
+(****************************************************************************
+ * Unification, matching, substitution (providen functions).                *
+ ****************************************************************************)
 let rec gmatching sigma pb =
   match pb with
     | [] -> sigma
@@ -488,6 +497,22 @@ let uniq eq list =
 let uniq_int = uniq (==);;
 let uniq_string = uniq eq_string;;
 
+let rec swap_nth_child list n elt =
+  let rec compute n = function
+    | [] ->  []
+    | e::l -> let res = if n == 0 then elt else e in
+      res::compute (n - 1) l in
+  if n >= List.length list then
+    assert false
+  else
+    compute n list
+;;
+
+let option_to_bool = function
+  | None -> false
+  | Some _ -> true
+;;
+
 (****************************************************************************
  * Term related functions.                                                  *
  ****************************************************************************)
@@ -546,6 +571,7 @@ let cap symbls term =
   build term
 ;;
 
+
 let ren term =
   let max_vid = ref (get_var_max term) in
   let rec build = function
@@ -554,6 +580,40 @@ let ren term =
         Term (symbl, List.map build args) in
   build term
 ;;
+
+
+let rec subterms term =
+  let subs = strict_subterms term in
+  uniq_term (term::subs)
+and strict_subterms term =
+  match term with
+  | Var _ -> []
+  | Term (s, args) -> uniq_term (List.flatten (List.map subterms args))
+;;
+
+
+let symbol_arity symbl term =
+    let rec build = function
+      | Var _ -> -1
+      | Term (s, args) ->
+          if eq_string s symbl then
+            List.length args
+          else
+            List.fold_left (fun n elt -> max n (build elt)) (-1) args
+    in
+    build term
+;;
+
+
+let rec system_symbol_arity rules symbl =
+  let mymax a b = if a >= 0 then a else b in
+  let rec build = function
+    | [] -> -1
+    | (left, right)::l ->
+        mymax (mymax (symbol_arity symbl left) (symbol_arity symbl right)) (build l) in
+  build rules
+;;
+
 
 (****************************************************************************
  * Graph related functions.                                                 *
@@ -627,6 +687,41 @@ let graph_strong_connectivity g =
   res
 ;;
 
+let compute_graph const_symbls dp_list = (* FIXME: check me *)
+  let nb_var = List.length dp_list in
+  let g = make_empty_graph nb_var in
+  try
+    for i = 0 to pred nb_var do
+      for j = 0 to pred nb_var do
+        let (s1, t1) = List.nth dp_list i
+        and (s2, t2) = List.nth dp_list j in
+        match unification (ren (cap const_symbls t1)) s2 with
+        | None -> ()
+        | Some _ -> add_edge i j g
+      done;
+    done;
+    g
+  with Failure _ -> assert false (* should never happen *)
+;;
+
+let extract_components g = (* FIXME: check me *)
+  let conn = graph_strong_connectivity g in
+  let maxind = Array.fold_left max 0 conn
+  and res = ref [] in
+  for i = 1 to maxind do
+    let comp = make_empty_graph g.nb_nodes in
+    for x = 0 to pred g.nb_nodes do
+      for y = 0 to pred g.nb_nodes do
+        if g.mat.(x).(y) > 0
+            && conn.(x) == i
+            && conn.(x) == conn.(y) then
+          add_edge x y comp
+      done;
+    done;
+    res := comp::(!res)
+  done;
+  !res
+;;
 
 let write_graph_dot filename g =
   let oc = open_out filename in
@@ -645,139 +740,54 @@ let write_graph_dot filename g =
  * Dependencies pairs.                                                      *
  ****************************************************************************)
 
-
-(* Search if right's subterms allows to create DP *)
-let rec dp_search_subterms symbls sys left = function
-  | Var _ -> []
-  | Term (symbl, args) ->
-      let res = List.flatten
-          (List.map (dp_search_subterms symbls sys left) args) in
-      if List.exists (eq_string symbl) symbls then
-        (left, Term (symbl, args))::res
-      else
-        res
-;;
-
 let compute_dps sys =
   let symbls = compute_symbols sys in
+  let is_symbl str = List.exists (eq_string str) symbls in
+  let rec search_subterms left = function
+    | Var _ -> []
+    | Term (symbl, args) ->
+        let res = List.flatten (List.map (search_subterms left) args) in
+        if is_symbl symbl then (left, Term (symbl, args))::res else res in
   let rec build = function
-  | [] -> []
-  | (left, right)::l ->
-      List.append (dp_search_subterms symbls sys left right) (build l)
+    | [] -> []
+    | (left, right)::l ->
+        List.append (search_subterms left right) (build l)
   in build sys
 ;;
 
 
-(* TODO: *)
-
-(* Compute G_init *)
-let compute_graph symbl dpl =
-  let nb_var = List.length dpl
-  in let g = {
-    nb_nodes = nb_var;
-    mat = Array.create_matrix nb_var nb_var 0;
-    nb_succ = Array.create nb_var 0;
-    nb_pred = Array.create nb_var 0
-  }
-  in let _ =
-    for i = 0 to List.length dpl - 1 do
-      for j = 0 to List.length dpl - 1 do
-        let (s1, t1) = List.nth dpl i
-        and (s2, t2) = List.nth dpl j
-        in
-        match unification (ren (cap symbl t1)) s2 with
-        | None -> ()
-        | Some _ -> add_edge i j g
-      done;
-    done
-  in g
-;;
-
-let extract_components g =
-  let conn = graph_strong_connectivity g in
-  let maxind = Array.fold_left (fun e m -> max e m) 0 conn
-  and res = ref []
-  in
-  begin
-    for i = 1 to maxind do
-      let g2 = make_empty_graph g.nb_nodes
-      in
-      begin
-        for x = 0 to pred g.nb_nodes do
-          for y = 0 to pred g.nb_nodes do
-            if g.mat.(x).(y) > 0
-                && conn.(x) == i
-                && conn.(x) == conn.(y) then
-              add_edge x y g2
-          done;
-        done
-      end;
-      res := g2::(!res)
-    done;
-    !res
-  end
-;;
-
-let rec term_map var_f term_f term =
-  match term with
-  | Var x -> var_f x
-  | Term (s, tl) ->
-      term_f s
-        (List.map (term_map var_f term_f) tl)
-;;
-
-
-let rec swap_nth_child list n elt =
-  match list with
-  | [] ->  []
-  | e::l -> let res =
-      if n == 0 then elt else e
-  in res::swap_nth_child l (n-1) elt
-;;
-
-
-
+(****************************************************************************
+ * Rewriting functions.                                                     *
+ ****************************************************************************)
 
 let apply_rule term (left, right) =
-  let sigmaopt = unification left term in
-  match sigmaopt with
+  match unification left term with
   | None -> None
-  | Some sigma ->
-(*
-  print_newline ();
-  print_map sigma;
-  print_term (substitute sigma right);
-  print_newline ();
-  print_string "\t\t";
-*)
-  Some (substitute sigma right)
+  | Some sigma -> Some (substitute sigma right)
 ;;
 
-let rec apply_rules term rules =
-  match rules with
+let rec apply_rules term = function
   | [] -> [term]
   | rule::l ->
       match apply_rule term rule with
       | None -> apply_rules term l
-      | Some res -> uniq_term (res::(apply_rules term l))
+      | Some res -> uniq_term (res::apply_rules term l)
 ;;
 
-let compute_step sys t =
-  match t with
-  | Var _ -> apply_rules t sys
-  | Term (s, args) ->
-      begin
-        let subterms = List.flatten
-            (List.map (fun e -> apply_rules e sys) args) in
-        let rebuild_term n e =
-          Term (s, swap_nth_child args n e) in
-        let (res, _) = List.fold_left
-            (fun (l, n) e -> ((rebuild_term n e)::l, n+1))
-            ([], 0)
-            subterms
-        in
-        uniq_term (List.append res (apply_rules t sys))
-      end
+let compute_step sys t = match t with
+| Var x -> apply_rules t sys
+| Term (s, args) ->
+    begin
+      let subterms = List.flatten
+          (List.map (fun e -> apply_rules e sys) args) in
+      let rebuild_term n e =
+        Term (s, swap_nth_child args n e) in
+      let (res, _) = List.fold_left
+          (fun (l, n) e -> ((rebuild_term n e)::l, n+1))
+          ([], 0)
+          subterms in
+      uniq_term (List.append res (apply_rules t sys))
+    end
 ;;
 
 let rec compute_n_step_reds sys n t =
@@ -786,25 +796,21 @@ let rec compute_n_step_reds sys n t =
   else
     let one_step = compute_step sys t in
     let res = List.flatten
-        (List.map (compute_n_step_reds sys (n-1)) one_step) in
+        (List.map (compute_n_step_reds sys (n - 1)) one_step) in
     uniq_term (List.append one_step res)
 ;;
 
 
-let project p t =
-  match t with
-  | Var _ -> t
-  | Term (s, tl) -> List.nth tl (p s)
-;;
+(****************************************************************************
+ * Projection functions.                                                    *
+ ****************************************************************************)
 
-let rec subterms term =
-  let subs = strict_subterms term in
-  uniq_term (term::subs)
-and strict_subterms term =
-  match term with
-  | Var _ -> []
-  | Term (s, args) ->
-      uniq_term (List.flatten (List.map subterms args))
+let project proj term =
+  try
+    match term with
+    | Var x -> Var x
+    | Term (symbl, args) -> List.nth args (proj symbl)
+  with Not_found -> failwith "Invalid projection used."
 ;;
 
 let removable r p (u, v) n =
@@ -812,72 +818,40 @@ let removable r p (u, v) n =
   and pv = project p v in
   let st = subterms pu
   and st_strict = strict_subterms pu
+  and one_step = compute_n_step_reds r 1 pu
   and n_step = compute_n_step_reds r n pu in
-  let res = List.append st n_step
-  and res_strict = List.append st_strict n_step in
 
-  if List.exists (eq_term pv) res then
+  if List.exists (eq_term pv) (List.append st n_step) then
     Strict
-  else if List.exists (eq_term pv) res_strict then
+  else if List.exists (eq_term pv) (List.append st_strict one_step) then
     Large
   else
     No
 ;;
 
 
-let rec compute_symbl_arity_term symbl term =
-  match term with
-  | Var _ -> -1
-  | Term (s, args) ->
-      begin
-        if String.compare s symbl == 0then
-          List.length args
-        else
-          List.fold_left (fun n elt -> max n (compute_symbl_arity_term symbl elt)) (-1) args
-      end
-;;
-
-
-let rec compute_symbl_arity symbl rules =
-  match rules with
-  | [] -> -1
-  | (left, right)::l ->
-      let left_ar = compute_symbl_arity_term symbl left
-      and right_ar = compute_symbl_arity_term symbl left in
-      let res = max left_ar right_ar in
-      if res >= 0 then
-        res
-      else
-        compute_symbl_arity symbl l
-;;
-
-
-(* Generate all possible projections *)
-let rec gen_projs rules projs symbls =
+let rec gen_projs rules projs =
   let rec gen_seq arity n =
     if n < arity then
       []
     else
-      n::(gen_seq arity (n+1))
-  in
+      n::(gen_seq arity (n+1)) in
   let new_projs projs arity =
     match projs with
     | [] -> [gen_seq arity 0]
     | e::l ->
         List.map
           (fun elt -> List.append e [elt])
-          (gen_seq arity 0)
-  in
-  match symbls with
-  | [] -> projs
-  | symbl::l ->
-      let arity = compute_symbl_arity symbl rules in
-      gen_projs rules (new_projs projs arity) l
+          (gen_seq arity 0) in
+  function
+    | [] -> projs
+    | symbl::l ->
+        let arity = system_symbol_arity rules symbl in
+        gen_projs rules (new_projs projs arity) l
 ;;
 
 
 
-(* Check that every node in this component is removable *)
 let rec check_proj_comp rules graph p dp nstep =
   let i = ref 0
   and res = ref true in
@@ -892,7 +866,6 @@ let rec check_proj_comp rules graph p dp nstep =
   !res
 ;;
 
-(* Return  the component which belong to then n-th nodes. *)
 let rec find_component n comps =
   match comps with
   | [] -> raise Not_found
@@ -904,7 +877,6 @@ let rec find_component n comps =
         find_component n l
 ;;
 
-(* Search if the projection is valid with some dp *)
 let rec check_proj rules comps p dps n nstep =
   match dps with
   | [] -> raise Not_found
@@ -916,11 +888,20 @@ let rec check_proj rules comps p dps n nstep =
         check_proj rules comps p l (n+1) nstep
 ;;
 
+let proj_list_to_fun proj_list =
+  fun symbol ->
+    let rec find_symbl = function
+      | [] -> raise Not_found
+      | (symbl, n)::l -> if eq_string symbl symbol then n else find_symbl l in
+    find_symbl proj_list
+;;
+
+let rec proj_fun_to_list proj_fn = function
+  | [] -> []
+  | symbl::l -> (symbl, proj_fn symbl)::proj_fun_to_list proj_fn l
+;;
+
 let rec find_projection rules g symbls n =
-  let dps = compute_dps rules in
-  let g = compute_graph symbls dps in
-  let comps = extract_components g in
-  let projs = gen_projs rules [] symbls in
   let get_symb_pos symb symbls =
     let (res, _) = List.fold_right
         (fun e (n, pos) ->
@@ -931,44 +912,37 @@ let rec find_projection rules g symbls n =
         symbls (0, 0)
     in res
   in
-  (* convert int list list into (symb -> int) list *)
   let to_fun projs =
-    List.map (fun proj -> (fun symb -> List.nth proj (get_symb_pos symb symbls))) projs
-  in
-  (* convert (symb -> int) list into (symb * int) list *)
-  let rec to_list f symbls =
-    match symbls with
-    | [] -> []
-    | symbl::l ->
-        (symbl, f symbl)::(to_list f l)
-  in
-  let valid_projs = List.map
-      (fun elt ->
-        try
-          Some (elt, check_proj rules comps elt dps 0 n)
-        with Not_found -> None) (to_fun projs)
-  in
-  let res = List.find
-      (fun e -> match e with
-      | None -> false
-      | Some _ -> true) valid_projs
-  in
-  match res with
+    List.map (fun proj -> (fun symb -> List.nth proj (get_symb_pos symb symbls))) projs in
+
+  let dps = compute_dps rules in
+  let g = compute_graph symbls dps in
+  let comps = extract_components g in
+  let projs = gen_projs rules [] symbls in
+  let chk_proj elt =
+    try
+      Some (elt, check_proj rules comps elt dps 0 n)
+    with Not_found -> None in
+  let valid_projs = List.map chk_proj (to_fun projs) in
+  match List.find option_to_bool valid_projs with
   | None -> assert false
-  | Some (f, dp) -> (to_list f symbls, dp)
+  | Some (f, dp) -> (proj_fun_to_list f symbls, dp)
 ;;
 
 
-let main sys =
-  let nstep = 5 in
-  let dps = compute_dps sys in
+(****************************************************************************
+ * Main.                                                                    *
+ ****************************************************************************)
+
+let main rules nstep =
+  let dps = compute_dps rules in
   let symbs = compute_symbols dps in
   let graph = compute_graph symbs dps in
-
   let rec remove graph =
     try
-      let (proj, dp) = find_projection sys graph symbs nstep
-      and state = ref 0 and found = ref false in
+      let (proj, dp) = find_projection rules graph symbs nstep
+      and state = ref 0
+      and found = ref false in
 
       while !found == false && !state < graph.nb_nodes do
         if eq_dp (List.nth dps !state) dp then
@@ -978,7 +952,9 @@ let main sys =
       done;
       remove_a_node graph !state;
       graph::(remove graph);
-    with Not_found -> [graph]
-  in
+    with Not_found -> [graph] in
   remove graph
 ;;
+
+
+

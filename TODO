@@ -1,0 +1,6 @@
+-*- outline -*-
+
+* check why the first extracted component is sometimes the empty graph.
+
+* clean tests,
+* check find_projection & main.
