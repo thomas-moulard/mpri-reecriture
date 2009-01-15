@@ -2,5 +2,5 @@
 
 * check why the first extracted component is sometimes the empty graph.
 
-* clean tests,
+* clean tests (use Format for better output),
 * check find_projection & main.

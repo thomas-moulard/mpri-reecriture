@@ -810,7 +810,7 @@ let project proj term =
     match term with
     | Var x -> Var x
     | Term (symbl, args) -> List.nth args (proj symbl)
-  with Not_found -> failwith "Invalid projection used."
+  with Failure _ -> failwith "Invalid projection used."
 ;;
 
 let removable r p (u, v) n =
@@ -913,7 +913,9 @@ let rec find_projection rules g symbls n =
     in res
   in
   let to_fun projs =
-    List.map (fun proj -> (fun symb -> List.nth proj (get_symb_pos symb symbls))) projs in
+    try
+      List.map (fun proj -> (fun symb -> List.nth proj (get_symb_pos symb symbls))) projs
+    with Failure _ -> assert false in
 
   let dps = compute_dps rules in
   let g = compute_graph symbls dps in
@@ -945,10 +947,12 @@ let main rules nstep =
       and found = ref false in
 
       while !found == false && !state < graph.nb_nodes do
-        if eq_dp (List.nth dps !state) dp then
-          found := true
-        else
-          state := !state + 1
+        try
+          if eq_dp (List.nth dps !state) dp then
+            found := true
+          else
+            state := !state + 1
+        with Failure _ -> assert false
       done;
       remove_a_node graph !state;
       graph::(remove graph);
