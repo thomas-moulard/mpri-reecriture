@@ -1,7 +1,16 @@
-(* Compute system reductions *)
+(* Rewriting functions *)
+
+open Format;;
 
 open Reecriture;;
+open Examples;;
+open Test;;
 
+(****************************************************************************
+ * Check rewriting.                                                         *
+ ****************************************************************************)
+
+(*
 let rec test_apply_rule rule terms =
   match terms with
   | [] -> ()
@@ -117,3 +126,35 @@ for n = 0 to 3 do
   test_compute_n_step n Examples.system_7_3 Examples.terms_7_3;
   print_newline ();
 done;
+*)
+
+let check_apply_rule () =
+  () (* FIXME: *)
+;;
+
+let check_apply_rules () =
+  () (* FIXME: *)
+;;
+
+let check_compute_step () =
+  () (* FIXME: *)
+;;
+
+let check_compute_n_step_reds () =
+  () (* FIXME: *)
+;;
+
+
+(****************************************************************************
+ * Execute test suite.                                                      *
+ ****************************************************************************)
+let tests =
+  [
+   (check_apply_rule, "apply a rule to a term");
+   (check_apply_rules, "apply several rules to a term");
+   (check_compute_step, "compute one rewriting step");
+   (check_compute_n_step_reds, "compute n rewriting steps")
+ ] in
+printf "Rewriting functions test suite.@\n";
+exit (run_tests tests)
+;;

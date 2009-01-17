@@ -28,7 +28,7 @@ let system_7_3 =
   [
    (* x + 0 -> x *)
    (Term ("+", [vX; zero]), vX);
-   (* x+ S(y) -> S(x+y) *)
+   (* x + S(y) -> S(x+y) *)
    (Term ("+", [vX; Term ("S", [vY])]),
     Term ("S", [Term("+", [vX; vY])]))
  ]

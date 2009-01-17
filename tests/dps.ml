@@ -1,7 +1,16 @@
-(* Test compute_dps with some subterms *)
+(* Dependencies pairs related functions *)
+
+open Format;;
 
 open Reecriture;;
+open Examples;;
+open Test;;
 
+(****************************************************************************
+ * Check dependencies pairs computation.                                    *
+ ****************************************************************************)
+
+(*
 let test_print () =
   print_string "** Test print.\n";
   print_string "* Ref: + (X0, X1)\n";
@@ -45,3 +54,20 @@ let test_compute_dps () =
 
 test_print ();
 test_compute_dps ()
+*)
+
+let check_compute_dps () =
+  () (* FIXME: *)
+;;
+
+
+(****************************************************************************
+ * Execute test suite.                                                      *
+ ****************************************************************************)
+let tests =
+  [
+   (check_compute_dps, "compute dependencies pairs")
+ ] in
+printf "Dependencies pairs functions test suite.@\n";
+exit (run_tests tests)
+;;

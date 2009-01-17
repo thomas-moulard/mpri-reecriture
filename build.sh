@@ -1,12 +1,10 @@
 #! /bin/sh
 
-# to compile with ocamlgraph: -lib graph
-
-ocamlbuild                      \
-    main.native                 \
-    test_compute_reds.native    \
-    test_dps.native             \
-    test_graph.native           \
-    test_main.native            \
-    test_proj.native            \
-    test_components.native
+ocamlbuild -I tests                             \
+    tests/dps.native                            \
+    tests/gen.native                            \
+    tests/graph.native                          \
+    tests/main.native                           \
+    tests/projection.native                     \
+    tests/rewriting.native                      \
+    tests/term.native

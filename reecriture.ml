@@ -1,3 +1,5 @@
+open Format;;
+
 (****************************************************************************
  * Types.                                                                   *
  ****************************************************************************)
@@ -387,13 +389,13 @@ let unification t1 t2 =
  * Debug, test, printing functions.                                         *
  ****************************************************************************)
 
-let print_with str f e = f e; print_string str;;
-let print_int_ws = print_with " " print_int;;
-let print_str_ws = print_with " " print_string;;
+let print_with str f e = f e; Format.print_string str;;
+let print_int_ws = printf "%d@ ";;
+let print_str_ws = printf "%s@ ";;
 
 let print_array printfct array =
   if Array.length array == 0 then
-      print_string "empty"
+      printf "empty"
   else
     Array.iter printfct array
 ;;
@@ -401,16 +403,16 @@ let print_array printfct array =
 let rec print_list printfct list =
   let rec print = function
     | [] -> ()
-    | e::t -> printfct e; print_list printfct t in
+    | e::t -> printfct e; print t in
   if list == [] then
-    print_string "empty"
+    printf "empty"
   else
     print list
 ;;
 
 let print_option print opt =
   match opt with
-  | None -> print_string "empty"
+  | None -> printf "empty"
   | Some x -> print x
 ;;
 
@@ -419,20 +421,18 @@ let print_symblist printfct symbls =
     | [] -> ()
     | e::l -> printfct e; print l in
   if symbls == [] then
-    print_string "empty"
+    printf "empty"
   else
     print symbls
 ;;
 
 let rec print_term =
-    let print_var x =
-      print_string "X"; print_int x
-    and print_binop symbl = function
+  let print_var x =
+    printf "X%d" x
+  and print_binop symbl = function
     | a::b::[] ->
         print_term a;
-        print_string " ";
-        print_string symbl;
-        print_string " ";
+        printf "@ %s@ " symbl;
         print_term b;
     | _ -> assert false
   and print_args = function
@@ -442,44 +442,51 @@ let rec print_term =
         print_term u;
         List.iter (print_with ", " print_term) (v::l)
   in let print_symb symbl args =
-    if List.length args == 0 then
-      print_string symbl
-    else if List.length args == 2 then
-      print_binop symbl args
-    else
-      (print_string symbl; print_string (" ("); print_args args; print_string (")"))
+    match List.length args with
+    | 0 -> print_string symbl
+    | 2 -> print_binop symbl args
+    | _ -> printf "%s@ (" symbl; print_args args; printf ")"
   in function
-  | Var x -> print_var x
-  | Term (symbl, args) ->
-      print_symb symbl args
+    | Var x -> print_var x
+    | Term (symbl, args) -> print_symb symbl args
 ;;
 
 let print_map print map =
   let printmap key e =
-    print_string "X"; print key;
-    print_string " |-> "; print_term e; print_newline () in
+    printf "X%d @ |->" key;
+    print_term e; print_newline () in
   VarMap.iter printmap map
 ;;
 
-let print_dp (left, right) = print_term left; print_string ", "; print_term right;;
+let print_dp (left, right) = print_term left; printf ",@ "; print_term right;;
 let print_dps = print_list (print_with "\n" print_dp);;
 
-let print_rule (left, right) = print_term left; print_string " -> "; print_term right;;
+let print_rule (left, right) = print_term left; printf " ->@ "; print_term right;;
 
-let rec print_system = function
-  | [] -> print_string "empty"
-  | rule::l -> print_with "\n" print_rule rule; print_system l
+let print_system rules =
+  let rec print = function
+    | [] -> ()
+    | rule::l -> printf "@\n"; print_rule rule; print l
+  in
+  if rules == [] then
+    printf "empty"
+  else
+    begin
+      printf "@[<hov>";
+      print rules;
+      printf "@]@\n"
+    end
 ;;
 
 let rec print_proj proj = function
   | [] -> ()
-  | e::l -> Format.printf "%s: %d\n" e (proj e)
+  | e::l -> Format.printf "%s:@ %d\n" e (proj e)
 ;;
 
 let print_graph fmt g =
-  print_string "- Number of nodes: "; print_int g.nb_nodes; print_newline ();
-  print_string "- Succ:"; print_array print_int g.nb_succ; print_newline ();
-  print_string "- Pred:"; print_array print_int g.nb_pred; print_newline ();
+  printf "- Number of nodes: "; print_int g.nb_nodes; print_newline ();
+  printf "- Succ:"; print_array print_int g.nb_succ; print_newline ();
+  printf "- Pred:"; print_array print_int g.nb_pred; print_newline ();
 ;;
 
 (****************************************************************************
@@ -520,6 +527,7 @@ let option_to_bool = function
 let rec eq_term a b = match (a, b) with
 | (Var _, Term _) | (Term _, Var _) -> false
 | (Var x, Var y) -> x == y
+| (Term (s1, []), Term (s2, [])) -> eq_string s1 s2
 | (Term (s1, args1), Term (s2, args2)) ->
     if eq_string s1 s2 then
       List.exists2 eq_term args1 args2

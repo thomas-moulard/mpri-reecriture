@@ -1,8 +1,16 @@
-(* Test the whole software *)
+(* Generic functions *)
 
-open Printexc;;
+open Format;;
+
 open Reecriture;;
+open Examples;;
+open Test;;
 
+(****************************************************************************
+ * Check main function.                                                     *
+ ****************************************************************************)
+
+(*
 let print_write_graph g file =
   print_graph Format.std_formatter g;
   write_graph_dot file g
@@ -37,3 +45,21 @@ let test_graph_init () =
 
 test_graph_init ()
 
+*)
+
+
+let check_main () =
+  () (* FIXME: *)
+;;
+
+
+(****************************************************************************
+ * Execute test suite.                                                      *
+ ****************************************************************************)
+let tests =
+  [
+   (check_main, "check main")
+ ] in
+printf "Main function test suite.@\n";
+exit (run_tests tests)
+;;
