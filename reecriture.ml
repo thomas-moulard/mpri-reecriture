@@ -832,6 +832,7 @@ let project proj term =
     | Var x -> Var x
     | Term (symbl, args) -> List.nth args (proj symbl)
   with Failure _ -> failwith "Invalid projection used."
+  | Invalid_argument _ -> failwith "Invalid projection used."
 ;;
 
 let removable r p (u, v) n =

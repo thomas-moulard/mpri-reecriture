@@ -10,47 +10,30 @@ open Test;;
  * Projection graph functions.                                              *
  ****************************************************************************)
 
-(*
-let null_proj term =
-  fun e -> 0
+
+let cst_proj n =
+  fun symbl -> n
 ;;
 
-let test_project term =
-  let proj = null_proj term in
-  print_string "\tTerm: ";
-  print_term term;
-  print_newline ();
-  print_string "\tProjection:\n";
-  print_proj proj (build_symblist term);
-  print_newline ();
-  print_string "\tProjected term: ";
-  print_term (project proj term);
-  print_newline ();
-;;
-
-let test_subterms () =
-  ()
-;;
-
-let test_removable () =
-  ()
-;;
-
-let test_find_proj () =
-  ()
-;;
-
-
-print_string "* Test project (terms from system 7.3)\n";
-List.iter test_project terms_7_3;
-
-print_string "* Test subterms\n";
-print_string "* Test removable\n";
-print_string "* Test find_proj\n";
-*)
 
 let check_project () =
-  () (* FIXME: *)
+  let eq proj t1 t2 = eq_term (project proj t1) t2 in
+  let chk p = metachk false print_term print_term (eq p) in
+
+  printf "constant projection = 0@\n";
+  chk (cst_proj 0) vX vX;
+  chk (cst_proj 0) (succ vX) vX;
+  chk (cst_proj 0) (plus vX vY) vX;
+  chk (cst_proj 0) (Term ("?", [vX; vY; Var 2; Var 3])) vX;
+
+  printf "constant projection = 1@\n";
+  chk (cst_proj 1) (Term ("?", [vX; vY; Var 2; Var 3])) vY;
+
+  printf "constant projection = 2@\n";
+  chk (cst_proj 2) (Term ("?", [vX; vY; Var 2; Var 3])) (Var 2);
+
+  printf "constant projection = 3@\n";
+  chk (cst_proj 3) (Term ("?", [vX; vY; Var 2; Var 3])) (Var 3);
 ;;
 
 let check_removable () =
