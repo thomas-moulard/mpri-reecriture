@@ -60,3 +60,20 @@ let fail_check = function
   | false -> ()
   | true -> raise Test_failed
 ;;
+
+let metachk expected_failure printl printr predicate x y =
+  let res = predicate x y in
+  let res_str =
+    if expected_failure then
+      (if res then "KO" else "OK")
+    else
+      (if res then "OK" else "KO")
+  and ope = if res then "=" else "!=" in
+  printf "@[<h> [%s] " res_str; printl x;
+  printf "@ %s@ " ope;
+  printr y; printf "@]@\n";
+  if expected_failure then
+    fail_check res
+  else
+    check res
+;;

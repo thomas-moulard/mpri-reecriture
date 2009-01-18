@@ -10,24 +10,6 @@ open Test;;
  * Factorized tests code.                                                   *
  ****************************************************************************)
 
-(* Check whether (predicate x y) or ~(predicate x y). *)
-let metachk expected_failure printl printr predicate x y =
-  let res = predicate x y in
-  let res_str =
-    if expected_failure then
-      (if res then "KO" else "OK")
-    else
-      (if res then "OK" else "KO")
-  and ope = if res then "=" else "!=" in
-  printf "@[<h> [%s] " res_str; printl x;
-  printf "@ %s@ " ope;
-  printr y; printf "@]@\n";
-  if expected_failure then
-    fail_check res
-  else
-    check res
-;;
-
 let print_terms tl =
   printf "@[";
   print_list (fun t -> printf "@\n"; print_term t) tl;
@@ -252,7 +234,7 @@ let check_system_symbol_arity () =
   chk "S" [(zero, zero)] (-1);
   chk "S" system_7_3 1;
   chk "S" system_7_11 1;
-  chk "S" system_7_19 (-1);
+  chk "S" system_7_19 1;
 ;;
 
 (****************************************************************************

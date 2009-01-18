@@ -459,7 +459,20 @@ let print_map print map =
 ;;
 
 let print_dp (left, right) = print_term left; printf ",@ "; print_term right;;
-let print_dps = print_list (print_with "\n" print_dp);;
+
+let print_dps dps =
+  let rec print = function
+    | [] -> ()
+    | dp::l -> printf "@\n"; print_dp dp; print l in
+ if dps == [] then
+   printf "empty"
+ else
+   begin
+     printf "@[<hov>";
+     print dps;
+     printf "@]@\n"
+   end
+;;
 
 let print_rule (left, right) = print_term left; printf " ->@ "; print_term right;;
 
