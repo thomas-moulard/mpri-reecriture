@@ -27,10 +27,9 @@ let div = term_binop "/";;
 let system_7_3 =
   [
    (* x + 0 -> x *)
-   (Term ("+", [vX; zero]), vX);
-   (* x + S(y) -> S(x+y) *)
-   (Term ("+", [vX; Term ("S", [vY])]),
-    Term ("S", [Term("+", [vX; vY])]))
+   (plus vX zero, vX);
+   (* x + S(y) -> S(x + y) *)
+   (plus vX (succ vY), (succ (plus vX vY)))
  ]
 ;;
 
@@ -47,25 +46,13 @@ let terms_7_3 =
 let system_7_11 =
   [
    (* x - 0 -> x *)
-   (
-    Term ("-", [vX; zero]),
-    vX
-   );
+   (minus vX zero, vX);
    (* 0 / S(y) -> 0 *)
-   (
-    Term ("/", [zero; Term ("S", [vY])]),
-    zero
-   );
+   (div zero (succ vY), zero);
    (* S(x) - S(y) -> x - y *)
-   (
-    Term ("-", [Term ("S", [vX]); Term ("S", [vY])]),
-    Term ("-", [vX; vY])
-   );
+   (minus (succ vX) (succ vY), minus vX vY);
    (* S(x) / S(y) -> S((x - y) / S(y)) *)
-   (
-    Term ("/", [Term ("S", [vX]); Term ("S", [vY])]),
-    Term ("S", [Term ("/", [Term ("-", [vX; vY]); vY])])
-   );
+   (div (succ vX) (succ vY), succ (div (minus vX vY) (succ vY)))
  ]
 ;;
 
@@ -73,21 +60,22 @@ let system_7_11 =
 let intlist a = Term ("intlist", [a]);;
 let int a b = Term ("int", [a;b]);;
 let append a b = Term (":", [a;b]);;
+let empty_list = Term ("[]", []);;
 
 let system_7_19 =
-  let empty = Term ("[]", []) in
+  let empty = empty_list in
   [
-(* intlist ([]) -> [] *)
+   (* intlist ([]) -> [] *)
    (intlist empty, empty);
-(* int (0, 0) -> 0 : [] *)
+   (* int (0, 0) -> 0 : [] *)
    (int zero zero, append zero empty);
-(* int (s x, 0) -> 0 : [] *)
+   (* int (s x, 0) -> 0 : [] *)
    (int (succ vX) zero, empty);
-(* intlist (x : y) -> s x : (intlist y) *)
+   (* intlist (x : y) -> s x : (intlist y) *)
    (intlist (append vX vY), append (succ vX) (intlist vY));
-(* int (0, s y) -> 0 : int (s 0, s y) *)
+   (* int (0, s y) -> 0 : int (s 0, s y) *)
    (int zero (succ vY), append zero (int (succ zero) (succ vY)));
-(* int (s x, s y) -> intlist (int (x, y)) *)
+   (* int (s x, s y) -> intlist (int (x, y)) *)
    (int (succ vX) (succ vY), intlist (int vX vY))
  ]
 ;;

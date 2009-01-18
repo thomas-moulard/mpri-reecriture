@@ -10,138 +10,106 @@ open Test;;
  * Check rewriting.                                                         *
  ****************************************************************************)
 
-(*
-let rec test_apply_rule rule terms =
-  match terms with
-  | [] -> ()
-  | term::l ->
-      begin
-        print_string "\t\t Term: ";
-        print_term term;
-        print_newline ();
-
-        print_string "\t\t Result: ";
-        print_option print_term (apply_rule term rule);
-        print_newline ();
-        print_newline ();
-        test_apply_rule rule l
-      end
+let eq_option eq a b =
+  match (a, b) with
+  | (None, None) -> true
+  | (None, _)  | (_, None) -> false
+  | (Some x, Some y) -> eq x y
 ;;
 
-let rec test_apply_rule_rec rules terms =
-  match rules with
-  | [] -> ()
-  | (left, right)::l ->
-      begin
-        print_string "\t Rule: ";
-        print_term left;
-        print_string " -> ";
-        print_term right;
-        print_newline ();
-        test_apply_rule (left, right) terms;
-        test_apply_rule_rec l terms;
-      end
-;;
-
-let rec test_apply_rules_rec rules terms =
-  match terms with
-  | [] -> ()
-  | term::l ->
-      begin
-        print_string "\t Term: ";
-        print_term term;
-        print_newline ();
-
-        print_string "\t Result(s):\n\t\t";
-        print_list (fun e -> print_term e; print_string "\n\t\t") (apply_rules term rules);
-        print_newline ();
-        print_newline ();
-        test_apply_rules_rec rules l
-      end
-;;
-
-let rec test_compute_step rules terms =
-  match terms with
-  | [] -> ()
-  | term::l ->
-      begin
-        print_string "\t Term: ";
-        print_term term;
-        print_newline ();
-
-        print_string "\t Result(s):\n\t\t";
-        print_list (fun e -> print_term e; print_string "\n\t\t") (compute_step rules term);
-        print_newline ();
-        print_newline ();
-        test_compute_step rules l
-      end
-;;
-
-let rec test_compute_n_step n rules terms =
-  match terms with
-  | [] -> ()
-  | term::l ->
-      begin
-        print_string "\t Term: ";
-        print_term term;
-        print_newline ();
-
-        print_string "\t Result(s):\n\t\t";
-        print_list (fun e -> print_term e; print_string "\n\t\t") (compute_n_step_reds rules n term);
-        print_newline ();
-        print_newline ();
-        test_compute_n_step n rules l
-      end
+let print_terms tl =
+  printf "@[";
+  print_list (fun t -> printf "@\n"; print_term t) tl;
+  printf "@]"
 ;;
 
 
-let test_graph n sys t=
-  print_term t;
-  print_newline ();
-
-  let rwlist = compute_n_step_reds sys n t in
-  print_list
-    (fun e -> print_string "\t- "; print_term e; print_newline ())
-    rwlist;
-  print_newline ();
-;;
-
-print_string "* System 7.3\n";
-print_string "** Test apply_rule (rules one by one).\n";
-test_apply_rule_rec Examples.system_7_3 Examples.terms_7_3;
-print_newline ();
-
-print_string "** Test apply_rules (rules alltogether).\n";
-test_apply_rules_rec Examples.system_7_3 Examples.terms_7_3;
-print_newline ();
-
-print_string "** Test compute_step (rules alltogether + subterms).\n";
-test_compute_step Examples.system_7_3 Examples.terms_7_3;
-print_newline ();
-
-for n = 0 to 3 do
-  print_string "** Test compute_steps (compute_step ";
-  print_int n;
-  print_string " times).\n";
-  test_compute_n_step n Examples.system_7_3 Examples.terms_7_3;
-  print_newline ();
-done;
-*)
 
 let check_apply_rule () =
-  () (* FIXME: *)
+  let eq rule t1 opt = eq_option eq_term (apply_rule t1 rule) opt in
+  let chk rule = metachk false print_term (print_option print_term)
+      (eq rule) in
+
+  printf "Using rule X-0 -> 0@\n";
+  let rule = (minus vX zero, vX) in
+  chk rule vX None;
+  chk rule (minus vX zero) (Some vX);
+  chk rule (minus vY zero) (Some vY);
 ;;
 
 let check_apply_rules () =
-  () (* FIXME: *)
+  let eq rules t l2 = try
+    List.for_all2 eq_term (apply_rules t rules) l2
+  with Invalid_argument _ -> false
+  and print = print_terms in
+  let chk rules = metachk false print_term print (eq rules) in
+
+  printf "* System 7.3:";
+  print_system system_7_3; printf "@\n";
+  chk system_7_3 vX [vX];
+
+  printf "@\n";
+  printf "* System 7.11:";
+  print_system system_7_11; printf "@\n";
+  chk system_7_11 vX [vX; zero];
+
+  printf "@\n";
+  printf "* System 7.19:";
+  print_system system_7_19; printf "@\n";
+  chk system_7_19 vX [append zero empty_list; vX; empty_list];
 ;;
 
 let check_compute_step () =
-  () (* FIXME: *)
+  let eq rules t l2 = try
+    List.for_all2 eq_term (compute_step rules t) l2
+  with Invalid_argument _ -> false
+  and print = print_terms in
+  let chk rules = metachk false print_term print (eq rules) in
+
+  printf "* System 7.3:";
+  print_system system_7_3; printf "@\n";
+  chk system_7_3 vX [vX];
+
+  let t = succ (minus vY zero) in
+  chk system_7_3 t [succ (minus vY zero)];
+
+  printf "@\n";
+  printf "* System 7.11:";
+  print_system system_7_11; printf "@\n";
+  chk system_7_11 vX [vX; zero];
+
+  printf "@\n";
+  printf "* System 7.19:";
+  print_system system_7_19; printf "@\n";
+  chk system_7_19 vX [append zero empty_list; vX; empty_list];
 ;;
 
 let check_compute_n_step_reds () =
-  () (* FIXME: *)
+  let eq rules n t l2 = try
+    List.for_all2 eq_term (compute_n_step_reds n rules t) l2
+  with Invalid_argument _ -> false
+  and print = print_terms in
+  let chk rules n = metachk false print_term print (eq rules n) in
+
+  let n = 5 in
+
+  printf "* System 7.3 (%d steps):" n;
+  print_system system_7_3; printf "@\n";
+  chk n system_7_3 vX [vX];
+
+  let t = succ (minus vY zero) in
+  chk n system_7_3 t [succ (minus vY zero)];
+
+  printf "@\n";
+  printf "* System 7.11 (%d steps):" n;
+  print_system system_7_11; printf "@\n";
+  chk n system_7_11 vX [zero; vX];
+
+  printf "@\n";
+  printf "* System 7.19 (%d steps):" n;
+  print_system system_7_19; printf "@\n";
+
+  chk n system_7_19 vX [empty_list; vX; append zero empty_list];
 ;;
 
 
