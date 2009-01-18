@@ -496,10 +496,17 @@ let rec print_proj proj = function
   | e::l -> Format.printf "%s:@ %d\n" e (proj e)
 ;;
 
-let print_graph fmt g =
-  printf "- Number of nodes: "; print_int g.nb_nodes; print_newline ();
-  printf "- Succ:"; print_array print_int g.nb_succ; print_newline ();
-  printf "- Pred:"; print_array print_int g.nb_pred; print_newline ();
+let print_graph g =
+  printf "@[<v>";
+  printf "@[Nodes: %d@]@\n" g.nb_nodes;
+  for i = 0 to pred g.nb_nodes do
+    printf "@[<h>";
+    for j = 0 to pred g.nb_nodes do
+      printf "%d@ " g.mat.(i).(j);
+    done;
+    printf "@]@\n";
+  done;
+  printf "@]";
 ;;
 
 (****************************************************************************

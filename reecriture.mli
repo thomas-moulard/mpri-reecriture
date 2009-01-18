@@ -4,7 +4,14 @@
 
 type var = int;;
 type symb = string;;
-type graph;;
+
+type graph =
+    {
+      nb_nodes : int;
+      mat : int array array;
+      nb_succ : int array;
+      nb_pred : int array;
+    };;
 
 type term =
   | Var of var
@@ -52,7 +59,7 @@ val print_system : system -> unit;;
 
 val print_proj : (string -> int) -> symb list -> unit;;
 
-val print_graph : Format.formatter -> graph -> unit;;
+val print_graph : graph -> unit;;
 
 
 (****************************************************************************
