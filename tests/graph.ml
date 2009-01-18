@@ -10,25 +10,6 @@ open Test;;
  * Check graph functions.                                                   *
  ****************************************************************************)
 
-
-let eq_graph g1 g2 =
-  if graph_nb_nodes g1 != graph_nb_nodes g2 then
-    false
-  else
-    begin
-      let n = graph_nb_nodes g1
-      and res = ref true in
-      for i = 0 to pred n do
-        for j = 0 to pred n do
-          if g1.mat.(i).(j) != g2.mat.(i).(j) then
-            res := false
-        done;
-      done;
-      !res
-    end
-;;
-
-
 let check_graph_nb_nodes () =
   let eq g n = (graph_nb_nodes g) == n
   and print = printf "%d" in

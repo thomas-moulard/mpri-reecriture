@@ -82,6 +82,7 @@ val option_to_bool : 'a option -> bool;;
  ****************************************************************************)
 val eq_term : term -> term -> bool;;
 val eq_dp : dp -> dp -> bool;;
+val eq_graph : graph -> graph -> bool;;
 val uniq_term : term list -> term list;;
 
 (* Compute of a term's symbols. *)

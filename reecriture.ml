@@ -556,6 +556,24 @@ let rec eq_term a b = match (a, b) with
 ;;
 
 let eq_dp (u1, v1) (u2, v2) = eq_term u1 u2 && eq_term v1 v2;;
+
+let eq_graph g1 g2 =
+  if g1.nb_nodes != g2.nb_nodes then
+    false
+  else
+    begin
+      let n = g1.nb_nodes
+      and res = ref true in
+      for i = 0 to pred n do
+        for j = 0 to pred n do
+          if g1.mat.(i).(j) != g2.mat.(i).(j) then
+            res := false
+        done;
+      done;
+      !res
+    end
+;;
+
 let uniq_term = uniq eq_term;;
 
 let build_symblist term =
