@@ -18,7 +18,7 @@ let rec print_graphs = function
 
 let check_main () =
   let eq n rules list = try
-    List.for_all2 eq_graph (main rules) list
+    List.for_all2 eq_graph (main rules n) list
   with Invalid_argument _ -> false in
   let chk n = metachk false print_system print_graphs (eq n) in
 

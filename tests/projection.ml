@@ -65,7 +65,27 @@ let check_proj_fun_to_list () =
 ;;
 
 let check_find_projection () =
-  () (* FIXME: *)
+  let eq np n rules (list2, dp2) = try
+    let (list1, dp1) = find_projection
+        rules
+        (compute_graph (compute_symbols rules) (compute_dps rules))
+        (compute_symbols rules)
+        n in
+    let res = List.for_all2
+        (fun (s1, int1) (s2, int2) -> eq_string s1 s2 && int1 == int2)
+        list1 list2 in
+    res && dp1 == dp2
+  with Invalid_argument _ -> false
+  and print (l, dp) =
+    printf "@[";
+    printf "@]" in
+  let chk np n = metachk false print_system print (eq np n) in
+
+
+  (* FIXME: insert result. *)
+  chk 0 5 system_7_3 ([], (vX, vX));
+  chk 0 5 system_7_11 ([], (vX, vX));
+  chk 0 5 system_7_19 ([], (vX, vX));
 ;;
 
 (****************************************************************************
