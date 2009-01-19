@@ -10,6 +10,11 @@ open Test;;
  * Projection graph functions.                                              *
  ****************************************************************************)
 
+let print_removable = function
+  | Strict -> printf "strict"
+  | Large -> printf "large"
+  | No -> printf "no"
+;;
 
 let cst_proj n =
   fun symbl -> n
@@ -37,23 +42,32 @@ let check_project () =
 ;;
 
 let check_removable () =
-  () (* FIXME: *)
+  let eq n symblfct dp rules r = removable rules symblfct dp n == r in
+  let chk n symblfct dp = metachk false print_system print_removable
+      (eq n symblfct dp) in
+
+  (* FIXME: insert result *)
+  let fct = function
+    | "+" -> 1
+    | "-" -> 2
+    | _ -> assert false in
+  chk 5 fct (vX, vX) system_7_3 Strict;
 ;;
 
 let check_gen_projs () =
-  () (* FIXME: *)
+  () (* FIXME: write this test. *)
 ;;
 
 let check_check_proj_comp () =
-  () (* FIXME: *)
+  () (* FIXME: write this test. *)
 ;;
 
 let check_find_component () =
-  () (* FIXME: *)
+  () (* FIXME: write this test. *)
 ;;
 
 let check_check_proj () =
-  () (* FIXME: *)
+  () (* FIXME: write this test. *)
 ;;
 
 let check_proj_list_to_fun () =
