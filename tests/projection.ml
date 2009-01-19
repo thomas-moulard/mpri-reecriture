@@ -57,11 +57,48 @@ let check_check_proj () =
 ;;
 
 let check_proj_list_to_fun () =
-  () (* FIXME: *)
+  let eq symbl symbl_list fct_b =
+    try
+      let res = proj_list_to_fun symbl_list in
+      List.for_all (fun s -> res s == fct_b s) symbl
+    with Invalid_argument _ -> false in
+  let rec printfct symbl symblfct =
+    match symbl with
+    | [] -> ()
+    | e::l -> printf "%s -> %d@\n" e (symblfct e); printfct l symblfct in
+  let rec print = function
+    | [] -> ()
+    | (s, n)::l -> printf "%s -> %d@\n" s n; print l in
+  let chk symbl = metachk false print (printfct symbl) (eq symbl) in
+  let fct = function
+    | "+" -> 1
+    | "-" -> 2
+    | _ -> assert false in
+  chk ["+"; "-"] [("+", 0); ("-", 1)] fct;
 ;;
 
 let check_proj_fun_to_list () =
-  () (* FIXME: *)
+  let eq symbl symblfct l =
+    try
+      let res = proj_fun_to_list symblfct symbl in
+      List.for_all2
+        (fun (s1, n1) (s2, n2)-> eq_string s1 s2 && n1 == n2)
+        res l
+    with Invalid_argument _ -> false in
+  let rec printfct symbl symblfct =
+    match symbl with
+    | [] -> ()
+    | e::l -> printf "%s -> %d@\n" e (symblfct e); printfct l symblfct in
+  let rec print = function
+    | [] -> ()
+    | (s, n)::l -> printf "%s -> %d@\n" s n; print l in
+  let chk symbl = metachk false (printfct symbl) print (eq symbl) in
+
+  let fct = function
+    | "+" -> 1
+    | "-" -> 2
+    | _ -> assert false in
+  chk ["+"; "-"] fct [("+", 1); ("-", 2)];
 ;;
 
 let check_find_projection () =
