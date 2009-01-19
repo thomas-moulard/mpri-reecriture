@@ -88,7 +88,7 @@ let check_proj_list_to_fun () =
     | "+" -> 1
     | "-" -> 2
     | _ -> assert false in
-  chk ["+"; "-"] [("+", 0); ("-", 1)] fct;
+  chk ["+"; "-"] [("+", 1); ("-", 2)] fct;
 ;;
 
 let check_proj_fun_to_list () =
