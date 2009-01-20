@@ -908,33 +908,12 @@ let gen_seq arity =
 ;;
 
 let rec complete_proj arity = function
-  | [] ->
-      (*printf "@[<v 1>@\n";*)
-      let res = List.map (fun e -> [e]) (gen_seq arity) in
-      (*printf "<<@\n";
-      print_list (fun e -> printf "@[{"; print_list (fun e -> printf "%d " e) e; printf "}@]") res;
-      printf ">>";
-      printf "@]@\n";*)
-      res
+  | [] -> List.map (fun e -> [e]) (gen_seq arity)
   | proj::l ->
-      (*printf "@[<v 1>@\n";*)
       let res = List.map
           (fun elt -> List.append proj [elt])
           (gen_seq arity) in
-
-      (*printf "<1<@\n";
-      print_list (fun e -> printf "@[{"; print_list (fun e -> printf "%d " e) e; printf "}@]@\n") res;
-      printf ">1>";*)
-
-      let res2 =
-        if l == [] then res else List.append res (complete_proj arity l)
-      in
-
-      (*printf "<<@\n";
-      print_list (fun e -> printf "@[{"; print_list (fun e -> printf "%d " e) e; printf "}@]@\n") res2;
-      printf ">>";
-      printf "@]@\n";*)
-      res2
+      if l == [] then res else List.append res (complete_proj arity l)
 ;;
 
 let rec gen_projs rules symbls =
