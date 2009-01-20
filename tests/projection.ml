@@ -155,17 +155,19 @@ let check_find_projection () =
     let res = List.for_all2
         (fun (s1, int1) (s2, int2) -> eq_string s1 s2 && int1 == int2)
         list1 list2 in
-    res && dp1 == dp2
+    res && eq_dp dp1 dp2
   with Invalid_argument _ -> false
   and print (l, dp) =
     printf "@[";
+    print_list (fun (s,n) -> printf "%s -> %d@\n" s n) l;
+    printf "@\n";
+    print_dp dp;
     printf "@]" in
   let chk n = metachk false print_system print (eq n) in
 
-  (* FIXME: insert result. *)
-  chk 5 system_7_3 ([], (vX, vX));
-  chk 5 system_7_11 ([], (vX, vX));
-  chk 5 system_7_19 ([], (vX, vX));
+  chk 5 system_7_3 ([("+", 0)], (plus vX (succ vY), plus vX vY));
+  chk 5 system_7_11 ([("/", 0); ("-", 0)], (minus (succ vX) (succ vY), minus vX vY));
+  chk 5 system_7_19 ([("int", 0); ("intlist", -1)], (int (succ vX) (succ vY), int vX vY));
 ;;
 
 (****************************************************************************
