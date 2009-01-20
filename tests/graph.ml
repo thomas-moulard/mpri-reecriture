@@ -159,6 +159,9 @@ let check_extract_components () =
 
   chk graph_7_11 [make_empty_graph 3; g1; g2];
 
+  write_graph_dot "graph-7-11-1.dot" g1;
+  write_graph_dot "graph-7-11-2.dot" g2;
+
   let g1 = make_empty_graph 4
   and g2 = make_empty_graph 4 in
   add_edge 1 3 g1;
@@ -166,40 +169,59 @@ let check_extract_components () =
   add_edge 3 3 g1;
   add_edge 0 0 g2;
 
+  write_graph_dot "graph-7-19-1.dot" g1;
+  write_graph_dot "graph-7-19-2.dot" g2;
+
   chk graph_7_19 [make_empty_graph 4; g1; g2];
 ;;
 
 let check_compute_graph () =
-  let eq rules = eq_graph (compute_graph (compute_symbols rules) rules) in
+  let eq rules = eq_graph (compute_graph (compute_symbols rules) (compute_dps rules)) in
   let chk = metachk false print_system print_graph eq in
 
-  let g = make_empty_graph 2 in
+  let g = make_empty_graph 1 in
   add_edge 0 0 g;
-  chk system_7_3 g;
+
   write_graph_dot "graph_init_7_3.dot"
-    (compute_graph (compute_symbols system_7_3) system_7_3);
+    (compute_graph (compute_symbols system_7_3) (compute_dps system_7_3));
+  chk system_7_3 g;
+
+  let g = make_empty_graph 3 in
+  add_edge 0 0 g;
+  add_edge 0 1 g;
+  add_edge 0 2 g;
+  add_edge 1 0 g;
+  add_edge 1 1 g;
+  add_edge 1 2 g;
+  add_edge 2 0 g;
+  add_edge 2 1 g;
+  add_edge 2 2 g;
+
+  write_graph_dot "graph_init_7_11.dot"
+    (compute_graph (compute_symbols system_7_11) (compute_dps system_7_11));
+  chk system_7_11 g;
 
   let g = make_empty_graph 4 in
   add_edge 0 0 g;
+  add_edge 0 1 g;
+  add_edge 0 2 g;
+  add_edge 0 3 g;
+  add_edge 1 0 g;
+  add_edge 1 1 g;
+  add_edge 1 2 g;
+  add_edge 1 3 g;
   add_edge 2 0 g;
   add_edge 2 1 g;
   add_edge 2 2 g;
   add_edge 2 3 g;
-  chk system_7_11 g;
-  write_graph_dot "graph_init_7_11.dot"
-    (compute_graph (compute_symbols system_7_11) system_7_11);
+  add_edge 3 0 g;
+  add_edge 3 1 g;
+  add_edge 3 2 g;
+  add_edge 3 3 g;
 
-  let g = make_empty_graph 6 in
-  add_edge 5 0 g;
-  add_edge 5 1 g;
-  add_edge 5 2 g;
-  add_edge 5 3 g;
-  add_edge 5 4 g;
-  add_edge 5 5 g;
-
-  chk system_7_19 g;
   write_graph_dot "graph_init_7_19.dot"
-    (compute_graph (compute_symbols system_7_19) system_7_19);
+    (compute_graph (compute_symbols system_7_19) (compute_dps system_7_19));
+  chk system_7_19 g;
 ;;
 
 

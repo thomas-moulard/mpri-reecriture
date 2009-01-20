@@ -733,7 +733,7 @@ let graph_strong_connectivity g =
   res
 ;;
 
-let compute_graph const_symbls dp_list = (* FIXME: check me *)
+let compute_graph const_symbls dp_list =
   let nb_var = List.length dp_list in
   let g = make_empty_graph nb_var in
   try
@@ -750,7 +750,7 @@ let compute_graph const_symbls dp_list = (* FIXME: check me *)
   with Failure _ -> assert false (* should never happen *)
 ;;
 
-let extract_components g = (* FIXME: check me *)
+let extract_components g =
   let conn = graph_strong_connectivity g in
   let maxind = Array.fold_left max 0 conn
   and res = ref [] in
