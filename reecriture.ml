@@ -530,6 +530,9 @@ let rec swap_nth_child list n elt =
     | e::l -> let res = if n == 0 then elt else e in
       res::compute (n - 1) l in
   if n >= List.length list then
+    let error_str = sprintf "Can not swap %d-th child (length = %d)\n"
+        n (List.length list) in
+    print_string error_str;
     assert false
   else
     compute n list
@@ -583,6 +586,14 @@ let build_symblist term =
         let res =  List.fold_left (fun e l -> List.append e (build l)) [] args in
         symbl::res
   in uniq_string (build term)
+;;
+
+let rec build_system_symblist = function
+  | [] -> []
+  | (left, right)::l -> uniq_string
+        (List.append
+           (List.append (build_symblist left) (build_symblist right))
+           (build_system_symblist l))
 ;;
 
 
@@ -824,15 +835,16 @@ let compute_step sys t = match t with
 | Var x -> apply_rules t sys
 | Term (s, args) ->
     begin
-      let subterms = List.flatten
-          (List.map (fun e -> apply_rules e sys) args) in
-      let rebuild_term n e =
-        Term (s, swap_nth_child args n e) in
-      let (res, _) = List.fold_left
-          (fun (l, n) e -> ((rebuild_term n e)::l, n+1))
-          ([], 0)
-          subterms in
-      uniq_term (List.append res (apply_rules t sys))
+      let subterms = List.map (fun e -> apply_rules e sys) args in
+      let rebuild_term n e = Term (s, swap_nth_child args n e) in
+      let rebuild subterms =
+        let rec rebuild n = function
+          | [] -> []
+          | subterms::l -> List.append
+                (List.map (fun e -> rebuild_term n e) subterms)
+                (rebuild (n+1) l) in
+        rebuild 0 subterms in
+      uniq_term (List.append (rebuild subterms) (apply_rules t sys))
     end
 ;;
 
@@ -855,7 +867,11 @@ let project proj term =
   try
     match term with
     | Var x -> Var x
-    | Term (symbl, args) -> List.nth args (proj symbl)
+    | Term (symbl, args) ->
+        if (proj symbl) < 0 then
+          term (* Arity is zero, no projection *)
+        else
+          List.nth args (proj symbl)
   with Failure _ -> failwith "Invalid projection used."
   | Invalid_argument _ -> failwith "Invalid projection used."
 ;;
@@ -877,24 +893,82 @@ let removable r p (u, v) n =
 ;;
 
 
-let rec gen_projs rules projs =
-  let rec gen_seq arity n =
-    if n < arity then
+let gen_seq arity =
+  let rec gen n =
+    if n >= arity then
       []
     else
-      n::(gen_seq arity (n+1)) in
-  let new_projs projs arity =
-    match projs with
-    | [] -> [gen_seq arity 0]
-    | e::l ->
-        List.map
-          (fun elt -> List.append e [elt])
-          (gen_seq arity 0) in
-  function
-    | [] -> projs
-    | symbl::l ->
-        let arity = system_symbol_arity rules symbl in
-        gen_projs rules (new_projs projs arity) l
+      n::(gen (n+1)) in
+  if arity < 0 then
+    assert false
+  else if arity == 0 then
+    [-1]
+  else
+    gen 0
+;;
+
+let rec complete_proj arity = function
+  | [] ->
+      (*printf "@[<v 1>@\n";*)
+      let res = List.map (fun e -> [e]) (gen_seq arity) in
+      (*printf "<<@\n";
+      print_list (fun e -> printf "@[{"; print_list (fun e -> printf "%d " e) e; printf "}@]") res;
+      printf ">>";
+      printf "@]@\n";*)
+      res
+  | proj::l ->
+      (*printf "@[<v 1>@\n";*)
+      let res = List.map
+          (fun elt -> List.append proj [elt])
+          (gen_seq arity) in
+
+      (*printf "<1<@\n";
+      print_list (fun e -> printf "@[{"; print_list (fun e -> printf "%d " e) e; printf "}@]@\n") res;
+      printf ">1>";*)
+
+      let res2 =
+        if l == [] then res else List.append res (complete_proj arity l)
+      in
+
+      (*printf "<<@\n";
+      print_list (fun e -> printf "@[{"; print_list (fun e -> printf "%d " e) e; printf "}@]@\n") res2;
+      printf ">>";
+      printf "@]@\n";*)
+      res2
+;;
+
+let rec gen_projs rules symbls =
+  let rec gen proj = function
+  | [] -> proj
+(*
+      printf "@[<v 1>@\n";
+      printf "no more symbols (empty, gen_projs)@\n";
+      let res = proj in
+      printf "@]@\n";
+      res
+*)
+
+  | symbl::l ->
+      let arity = system_symbol_arity rules symbl in
+      gen (complete_proj arity proj) l
+(*
+      printf "@[<v 1>@\n";
+      printf "Symbol %s, arity %d@\n" symbl arity;
+
+      let res = gen (complete_proj arity proj) l in
+      printf "@]@\n";
+      res
+*)
+  in
+  printf "@[<v 1>@\n";
+  printf "Symbols: ";
+  print_list (fun e -> printf "%s " e) symbls;
+  printf "@\n";
+
+  let res = gen [] symbls in
+
+  printf "@]";
+  res
 ;;
 
 
@@ -964,10 +1038,11 @@ let rec find_projection rules g symbls n =
       List.map (fun proj -> (fun symb -> List.nth proj (get_symb_pos symb symbls))) projs
     with Failure _ -> assert false in
 
+  let all_symbs = build_system_symblist rules in
   let dps = compute_dps rules in
   let g = compute_graph symbls dps in
   let comps = extract_components g in
-  let projs = gen_projs rules [] symbls in
+  let projs = gen_projs rules all_symbs in
   let chk_proj elt =
     try
       Some (elt, check_proj rules comps elt dps 0 n)

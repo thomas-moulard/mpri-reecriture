@@ -55,7 +55,37 @@ let check_removable () =
 ;;
 
 let check_gen_projs () =
-  () (* FIXME: write this test. *)
+  let eq_list p a b = try
+    List.for_all2 p a b
+    with Invalid_argument _ -> false in
+  let eq rules b = eq_list (eq_list (==))
+      (gen_projs rules (build_system_symblist rules)) b
+  and print x =
+    printf "@[<v 1>@\n";
+    print_list
+      (fun e ->
+        printf "@[<h>";
+        print_list (fun e -> printf "|%d| " e) e;
+        printf "@]@\n") x;
+    printf "@]" in
+  let chk = metachk false print_system print eq in
+
+  chk system_7_3 [[0;0;-1];[0;1;-1]];
+
+  chk system_7_11 [
+  [0; 0; 0; -1];
+  [0; 0; 1; -1];
+  [0; 1; 0; -1];
+  [0; 1; 1; -1]
+];
+
+  chk system_7_19 [
+  [-1; 0; 0; 0; 0; -1];
+  [-1; 0; 1; 0; 0; -1];
+  [-1; 1; 0; 0; 0; -1];
+  [-1; 1; 1; 0; 0; -1]
+];
+
 ;;
 
 let check_check_proj_comp () =
@@ -116,7 +146,7 @@ let check_proj_fun_to_list () =
 ;;
 
 let check_find_projection () =
-  let eq np n rules (list2, dp2) = try
+  let eq n rules (list2, dp2) = try
     let (list1, dp1) = find_projection
         rules
         (compute_graph (compute_symbols rules) (compute_dps rules))
@@ -130,13 +160,12 @@ let check_find_projection () =
   and print (l, dp) =
     printf "@[";
     printf "@]" in
-  let chk np n = metachk false print_system print (eq np n) in
-
+  let chk n = metachk false print_system print (eq n) in
 
   (* FIXME: insert result. *)
-  chk 0 5 system_7_3 ([], (vX, vX));
-  chk 0 5 system_7_11 ([], (vX, vX));
-  chk 0 5 system_7_19 ([], (vX, vX));
+  chk 5 system_7_3 ([], (vX, vX));
+  chk 5 system_7_11 ([], (vX, vX));
+  chk 5 system_7_19 ([], (vX, vX));
 ;;
 
 (****************************************************************************
@@ -151,7 +180,7 @@ let tests =
    (check_find_component, "find component");
    (check_check_proj, "check projection");
    (check_proj_list_to_fun, "projection list to projection function");
-   (check_proj_fun_to_list, "projection function to projection lit");
+   (check_proj_fun_to_list, "projection function to projection list");
    (check_find_projection, "find projection")
  ] in
 printf "Projection functions test suite.@\n";

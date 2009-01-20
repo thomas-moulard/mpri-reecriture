@@ -88,6 +88,9 @@ val uniq_term : term list -> term list;;
 (* Compute of a term's symbols. *)
 val build_symblist : term -> symb list;;
 
+(* Compute all system's symbols. *)
+val build_system_symblist : system -> symb list;;
+
 (* Compute the D set from a given system. *)
 val compute_symbols : system -> symb list;;
 
@@ -175,7 +178,7 @@ val project : (string -> int) -> term -> term;;
 val removable : system -> (string -> int) -> dp -> int -> can_be_removed;;
 
 (* Generate all possible projections *)
-val gen_projs : system -> int list list -> symb list -> int list list;;
+val gen_projs : system -> symb list -> int list list;;
 
 (* Check that every node in this component is removable *)
 val check_proj_comp : system -> graph -> projection -> dp -> int -> bool;;
