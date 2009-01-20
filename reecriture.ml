@@ -1012,6 +1012,16 @@ let rec find_projection rules g symbls n =
  * Main.                                                                    *
  ****************************************************************************)
 
+(* Remove a node put -1 in a state. *)
+let is_null_graph g =
+  let res = ref true in
+  for i = 0 to pred g.nb_nodes do
+    if g.nb_succ.(i) >= 0 then
+      res := false
+  done;
+  !res
+;;
+
 let main rules nstep =
   let dps = compute_dps rules in
   let symbs = compute_symbols dps in
@@ -1030,8 +1040,13 @@ let main rules nstep =
             state := !state + 1
         with Failure _ -> assert false
       done;
-      remove_a_node graph !state;
-      graph::(remove graph);
+      if is_null_graph graph || graph.mat.(!state).(0) < 0 then
+        []
+      else
+        begin
+          remove_a_node graph !state;
+          graph::(remove graph);
+        end
     with Not_found -> [graph] in
   remove graph
 ;;
