@@ -919,35 +919,10 @@ let rec complete_proj arity = function
 let rec gen_projs rules symbls =
   let rec gen proj = function
   | [] -> proj
-(*
-      printf "@[<v 1>@\n";
-      printf "no more symbols (empty, gen_projs)@\n";
-      let res = proj in
-      printf "@]@\n";
-      res
-*)
-
   | symbl::l ->
       let arity = system_symbol_arity rules symbl in
-      gen (complete_proj arity proj) l
-(*
-      printf "@[<v 1>@\n";
-      printf "Symbol %s, arity %d@\n" symbl arity;
-
-      let res = gen (complete_proj arity proj) l in
-      printf "@]@\n";
-      res
-*)
-  in
-  printf "@[<v 1>@\n";
-  printf "Symbols: ";
-  print_list (fun e -> printf "%s " e) symbls;
-  printf "@\n";
-
-  let res = gen [] symbls in
-
-  printf "@]";
-  res
+      gen (complete_proj arity proj) l in
+  gen [] symbls
 ;;
 
 
